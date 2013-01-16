@@ -4,7 +4,7 @@ import org.eclipse.osgi.util.NLS;
 
 @SuppressWarnings("javadoc")
 public class Messages extends NLS {
-    private static final String BUNDLE_NAME = "org.eclipse.linuxtools.internal.tmf.executionflow.ui"; //$NON-NLS-1$
+    private static final String BUNDLE_NAME = "org.eclipse.linuxtools.internal.tmf.executionflow.ui.messages"; //$NON-NLS-1$
 
     public static String ExecutionFlowView_birthTimeColumn;
     public static String ExecutionFlowView_tidColumn;

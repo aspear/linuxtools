@@ -4,7 +4,7 @@ import org.eclipse.osgi.util.NLS;
 
 @SuppressWarnings("javadoc")
 public class Messages extends NLS {
-	private static final String BUNDLE_NAME = "org.eclipse.linuxtools.internal.lttng2.kernel.ui.viewers.events.messages"; //$NON-NLS-1$
+	private static final String BUNDLE_NAME = "org.eclipse.linuxtools.internal.tmf.executionflow.ui.viewers.events.messages"; //$NON-NLS-1$
 	public static String EventsTable_channelColumn;
 	public static String EventsTable_timestampColumn;
 	public static String EventsTable_typeColumn;

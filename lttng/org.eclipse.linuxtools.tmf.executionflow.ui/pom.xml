@@ -41,5 +41,5 @@
     </plugins>
   </build>
 
- <groupId>org.eclipse.linuxtools.lttng2</groupId>
+ <groupId>org.eclipse.linuxtools.tmf.executionflow</groupId>
 </project>

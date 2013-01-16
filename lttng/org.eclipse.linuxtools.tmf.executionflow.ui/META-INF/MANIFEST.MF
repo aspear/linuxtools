@@ -3,6 +3,7 @@ Bundle-ManifestVersion: 2
 Bundle-Name: %Bundle-Name
 Bundle-SymbolicName: org.eclipse.linuxtools.tmf.executionflow.ui; singleton:=true
 Bundle-Version: 2.0.0.qualifier
+Bundle-Localization: plugin
 Bundle-Activator: org.eclipse.linuxtools.tmf.executionflow.ui.Activator
 Bundle-Vendor: %Bundle-Vendor
 Require-Bundle: org.eclipse.ui,
