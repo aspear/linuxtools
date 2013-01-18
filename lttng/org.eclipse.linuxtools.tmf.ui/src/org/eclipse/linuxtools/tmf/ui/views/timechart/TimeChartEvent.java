@@ -43,6 +43,7 @@ public class TimeChartEvent implements ITimeEvent {
     private boolean fIsSearchMatch;
     private TimeChartAnalysisEntry fItemizedEntry;
     private boolean fItemizing;
+    private final ITmfEvent fEvent; //Aaron added this
 
     /**
      * Standard constructor
@@ -59,6 +60,7 @@ public class TimeChartEvent implements ITimeEvent {
     public TimeChartEvent(TimeChartAnalysisEntry parentEntry, ITmfEvent event,
             long rank, TimeChartDecorationProvider decorationProvider) {
         fParentEntry = parentEntry;
+        fEvent = event;
         fTime = event.getTimestamp().normalize(0, TIMESTAMP_SCALE).getValue();
         fDuration = 0;
         fFirstRank = fLastRank = rank;
@@ -74,6 +76,11 @@ public class TimeChartEvent implements ITimeEvent {
     public ITimeGraphEntry getEntry() {
         return fParentEntry;
     }
+
+	@Override
+	public ITmfEvent getTmfEvent() {
+	    return fEvent;
+	}
 
     @Override
     public long getTime() {

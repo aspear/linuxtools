@@ -13,9 +13,12 @@
 
 package org.eclipse.linuxtools.tmf.ui.widgets.timegraph;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.eclipse.linuxtools.internal.tmf.ui.Messages;
+import org.eclipse.linuxtools.tmf.core.event.ITmfEvent;
+import org.eclipse.linuxtools.tmf.core.event.ITmfEventField;
 import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.ITimeEvent;
 import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.ITimeGraphEntry;
 import org.eclipse.swt.graphics.GC;
@@ -135,7 +138,20 @@ public class TimeGraphPresentationProvider implements ITimeGraphPresentationProv
      */
     @Override
     public Map<String, String> getEventHoverToolTipInfo(ITimeEvent event) {
-        return null;
+
+        ITmfEvent tmfEvent = event.getTmfEvent();
+        if (tmfEvent != null) {
+            Map<String,String> retMap = new LinkedHashMap<String,String>();
+
+            ITmfEventField[] fields = tmfEvent.getContent().getFields();
+            if (fields != null) {
+                for (ITmfEventField f : fields) {
+                    retMap.put( f.getName(), f.getValue().toString() );
+                }
+            }
+            return retMap;
+         }
+         return null;
     }
 
     /* (non-Javadoc)
