@@ -67,7 +67,9 @@ public class CtfExecutionTrace extends CtfTmfTrace {
             return false;
         }
 
-        /* Make sure the domain is "kernel" in the trace's env vars */
+        /* Make sure the domain is "ust" in the trace's env vars as it is what is 
+         * used for the execution tracing.  TODO figure out some other annotation in the metadata
+         * that uniquely identifies the execution tracing */
         String dom = temp.getEnvironment().get("domain"); //$NON-NLS-1$
         if (dom != null && dom.equals("\"ust\"")) { //$NON-NLS-1$
             return true;

@@ -7,9 +7,9 @@ public class Messages extends NLS {
     private static final String BUNDLE_NAME = "org.eclipse.linuxtools.internal.tmf.executionflow.ui.messages"; //$NON-NLS-1$
 
     public static String ExecutionFlowView_birthTimeColumn;
-    public static String ExecutionFlowView_tidColumn;
-    public static String ExecutionFlowView_ptidColumn;
-    public static String ExecutionFlowView_processColumn;
+    public static String ExecutionFlowView_contextColumn;
+    public static String ExecutionFlowView_nameColumn;
+    public static String ExecutionFlowView_scopeColumn;
     public static String ExecutionFlowView_traceColumn;
 
     public static String ExecutionFlowView_stateTypeName;

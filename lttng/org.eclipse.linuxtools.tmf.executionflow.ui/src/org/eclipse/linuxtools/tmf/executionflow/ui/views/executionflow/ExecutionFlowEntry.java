@@ -25,13 +25,14 @@ import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.ITimeGraphEntry;
  * An entry in the Control Flow view
  */
 public class ExecutionFlowEntry implements ITimeGraphEntry {
-    private final int fThreadQuark;
+    private final int fMethodQuark;
     private final CtfExecutionTrace fTrace;
     private ExecutionFlowEntry fParent = null;
     private final ArrayList<ExecutionFlowEntry> fChildren = new ArrayList<ExecutionFlowEntry>();
     private final String fName;
-    private final int fThreadId;
-    private final int fParentThreadId;
+    private final String fContextInfo;
+    //private final int fThreadId;
+    private final int fParentQuark;
     private long fBirthTime = -1;
     private long fStartTime = -1;
     private long fEndTime = -1;
@@ -59,12 +60,13 @@ public class ExecutionFlowEntry implements ITimeGraphEntry {
      * @param endTime
      *            The end time of this process
      */
-    public ExecutionFlowEntry(int threadQuark, CtfExecutionTrace trace, String execName, int threadId, int parentThreadId, long birthTime, long startTime, long endTime) {
-        fThreadQuark = threadQuark;
+    public ExecutionFlowEntry(int methodQuark, CtfExecutionTrace trace, String execName, String contextInfo, int parentQuark, long birthTime, long startTime, long endTime) {
+        fMethodQuark = methodQuark;
         fTrace = trace;
         fName = execName;
-        fThreadId = threadId;
-        fParentThreadId = parentThreadId;
+        fContextInfo = contextInfo;
+        //fThreadId = threadId;
+        fParentQuark = parentQuark;
         fBirthTime = birthTime;
         fStartTime = startTime;
         fEndTime = endTime;
@@ -89,6 +91,10 @@ public class ExecutionFlowEntry implements ITimeGraphEntry {
     public String getName() {
         return fName;
     }
+    
+    public String getContextInfo() {
+        return fContextInfo;
+    }    
 
     @Override
     public long getStartTime() {
@@ -120,8 +126,8 @@ public class ExecutionFlowEntry implements ITimeGraphEntry {
      *
      * @return The quark
      */
-    public int getThreadQuark() {
-        return fThreadQuark;
+    public int getNodeQuark() {
+        return fMethodQuark;
     }
 
     /**
@@ -138,17 +144,12 @@ public class ExecutionFlowEntry implements ITimeGraphEntry {
      *
      * @return The TID
      */
-    public int getThreadId() {
-        return fThreadId;
-    }
-
-    /**
-     * Get this thread's parent TID
-     *
-     * @return The "PTID"
-     */
-    public int getParentThreadId() {
-        return fParentThreadId;
+   // public int getThreadId() {
+   //     return fThreadId;
+   // }
+    
+    public int getParentQuark() {
+        return fParentQuark;
     }
 
     /**

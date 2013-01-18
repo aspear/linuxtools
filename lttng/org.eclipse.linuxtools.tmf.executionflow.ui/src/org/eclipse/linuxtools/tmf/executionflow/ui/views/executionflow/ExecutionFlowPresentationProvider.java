@@ -38,11 +38,9 @@ import org.eclipse.swt.graphics.RGB;
 public class ExecutionFlowPresentationProvider extends TimeGraphPresentationProvider {
 
     private enum State {
-        UNKNOWN     (new RGB(100, 100, 100)),
-        WAIT        (new RGB(200, 200, 0)),
-        USERMODE    (new RGB(0, 200, 0)),
-        SYSCALL     (new RGB(0, 0, 200)),
-        INTERRUPTED (new RGB(200, 100, 100));
+        UNKNOWN     (new RGB(255, 255, 255)),
+        WAITING     (new RGB(200, 0, 0)),
+        RUNNING     (new RGB(0, 200, 0));
 
         public final RGB rgb;
 
@@ -70,14 +68,10 @@ public class ExecutionFlowPresentationProvider extends TimeGraphPresentationProv
     public int getStateTableIndex(ITimeEvent event) {
         if (event instanceof ExecutionFlowEvent) {
             int status = ((ExecutionFlowEvent) event).getStatus();
-            if (status == StateValues.PROCESS_STATUS_WAIT) {
-                return State.WAIT.ordinal();
-            } else if (status == StateValues.PROCESS_STATUS_RUN_USERMODE) {
-                return State.USERMODE.ordinal();
-            } else if (status == StateValues.PROCESS_STATUS_RUN_SYSCALL) {
-                return State.SYSCALL.ordinal();
-            } else if (status == StateValues.PROCESS_STATUS_INTERRUPTED) {
-                return State.INTERRUPTED.ordinal();
+            if (status == StateValues.RUNNING) {
+                return State.RUNNING.ordinal();
+            } else if (status == StateValues.WAITING) {
+                return State.WAITING.ordinal();
             }
         }
         return State.UNKNOWN.ordinal();
@@ -87,14 +81,10 @@ public class ExecutionFlowPresentationProvider extends TimeGraphPresentationProv
     public String getEventName(ITimeEvent event) {
         if (event instanceof ExecutionFlowEvent) {
             int status = ((ExecutionFlowEvent) event).getStatus();
-            if (status == StateValues.PROCESS_STATUS_WAIT) {
-                return State.WAIT.toString();
-            } else if (status == StateValues.PROCESS_STATUS_RUN_USERMODE) {
-                return State.USERMODE.toString();
-            } else if (status == StateValues.PROCESS_STATUS_RUN_SYSCALL) {
-                return State.SYSCALL.toString();
-            } else if (status == StateValues.PROCESS_STATUS_INTERRUPTED) {
-                return State.INTERRUPTED.toString();
+            if (status == StateValues.RUNNING) {
+                return State.RUNNING.toString();
+            } else if (status == StateValues.WAITING) {
+                return State.WAITING.toString();
             }
         }
         return State.UNKNOWN.toString();
@@ -102,11 +92,22 @@ public class ExecutionFlowPresentationProvider extends TimeGraphPresentationProv
 
     @Override
     public Map<String, String> getEventHoverToolTipInfo(ITimeEvent event) {
-        Map<String, String> retMap = new LinkedHashMap<String, String>();
+    	//
         if (event instanceof ExecutionFlowEvent) {
+        	ExecutionFlowEntry entry = (ExecutionFlowEntry) event.getEntry();
+        	Map<String, String> retMap = new LinkedHashMap<String, String>();
+        	retMap.put("Package",entry.getContextInfo());
+        	retMap.put("Class.Method", entry.getName());
+        	return retMap;
+        }
+        else {
+        	return super.getEventHoverToolTipInfo(event);
+        }
+    }
+     /*   	
             ExecutionFlowEntry entry = (ExecutionFlowEntry) event.getEntry();
             ITmfStateSystem ssq = entry.getTrace().getStateSystem(CtfExecutionTrace.STATE_ID);
-            int tid = entry.getThreadId();
+            int tid = entry.getThreadId();          
 
             try {
                 //Find every CPU first, then get the current thread
@@ -132,29 +133,11 @@ public class ExecutionFlowPresentationProvider extends TimeGraphPresentationProv
             } catch (StateValueTypeException e) {
                 e.printStackTrace();
             } catch (StateSystemDisposedException e) {
-                /* Ignored */
-            }
-            int status = ((ExecutionFlowEvent) event).getStatus();
-            if (status == StateValues.PROCESS_STATUS_RUN_SYSCALL) {
-                try {
-                    int syscallQuark = ssq.getQuarkRelative(entry.getThreadQuark(), Attributes.SYSTEM_CALL);
-                    ITmfStateInterval value = ssq.querySingleState(event.getTime(), syscallQuark);
-                    if (!value.getStateValue().isNull()) {
-                        ITmfStateValue state = value.getStateValue();
-                        retMap.put(Messages.ExecutionFlowView_attributeSyscallName, state.toString());
-                    }
-
-                } catch (AttributeNotFoundException e) {
-                    e.printStackTrace();
-                } catch (TimeRangeException e) {
-                    e.printStackTrace();
-                } catch (StateSystemDisposedException e) {
-                    /* Ignored */
-                }
+                //Ignored 
             }
         }
-
         return retMap;
-    }
+        */
+    
 
 }

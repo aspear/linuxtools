@@ -23,20 +23,8 @@ package org.eclipse.linuxtools.internal.tmf.executiontrace.core;
 @SuppressWarnings("javadoc")
 public class StateValues {
 
-    /* CPU Status */
-    public static final int CPU_STATUS_IDLE = 0;
-    public static final int CPU_STATUS_RUN_USERMODE = 1;
-    public static final int CPU_STATUS_RUN_SYSCALL = 2;
-    public static final int CPU_STATUS_IRQ = 3;
-    public static final int CPU_STATUS_SOFTIRQ = 4;
-
-    /* Process status */
-    public static final int PROCESS_STATUS_UNKNOWN = 0;
-    public static final int PROCESS_STATUS_WAIT = 1;
-    public static final int PROCESS_STATUS_RUN_USERMODE = 2;
-    public static final int PROCESS_STATUS_RUN_SYSCALL = 3;
-    public static final int PROCESS_STATUS_INTERRUPTED = 4;
-
-    /* SoftIRQ-specific stuff. -1: null/disabled, >= 0: running on that CPU */
-    public static final int SOFT_IRQ_RAISED = -2;
+    /* thread Status */
+    public static final int IDLE = 0;
+    public static final int RUNNING = 1;
+    public static final int WAITING = 2;
 }
