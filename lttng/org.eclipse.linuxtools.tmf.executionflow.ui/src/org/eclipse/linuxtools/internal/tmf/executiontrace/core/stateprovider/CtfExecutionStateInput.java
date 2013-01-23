@@ -13,6 +13,8 @@
 package org.eclipse.linuxtools.internal.tmf.executiontrace.core.stateprovider;
 
 import java.util.HashMap;
+import java.util.Map;
+import java.util.Stack;
 
 import org.eclipse.linuxtools.internal.tmf.executiontrace.core.Attributes;
 import org.eclipse.linuxtools.internal.tmf.executiontrace.core.ExecutionTraceStrings;
@@ -39,6 +41,11 @@ import org.eclipse.linuxtools.tmf.core.statevalue.TmfStateValue;
  *
  */
 public class CtfExecutionStateInput extends AbstractStateChangeInput {
+	
+	private static final ITmfStateValue  RUNNING_VALUE = TmfStateValue.newValueInt(StateValues.RUNNING);
+	private static final ITmfStateValue  NULL_VALUE = TmfStateValue.nullValue();
+	
+	Map<Integer,Stack<Integer> > threadQuarkToMethodQuarkStackMap = new HashMap<Integer,Stack<Integer>>();
   /**
      * Instantiate a new state provider plugin.
      *
@@ -86,32 +93,74 @@ public class CtfExecutionStateInput extends AbstractStateChangeInput {
                  String threadId = Long.toHexString( (Long)(content.getField(ExecutionTraceStrings.TID_FIELD).getValue()));                
                  String className = (String)content.getField(ExecutionTraceStrings.CLASS_FIELD).getValue();
                  String methodName = (String)content.getField(ExecutionTraceStrings.METHOD_FIELD).getValue();
-                 String lineno = content.getField(ExecutionTraceStrings.LINE_NUMBER_FIELD).getValue().toString();
+                 //String lineno = content.getField(ExecutionTraceStrings.LINE_NUMBER_FIELD).getValue().toString();
+                 
+                 System.out.println(eventName + " " + methodName);
                  
                  // validate that we have a quark for this class
-                 int threadQuark=ss.getQuarkAbsoluteAndAdd(Attributes.THREADS, threadId);   	                            
+                 Integer threadQuark=ss.getQuarkAbsoluteAndAdd(Attributes.THREADS, threadId); 
+                 System.out.println("added quark="+threadQuark+" for " + threadId); //FIXME
                  
-                 // in our model we are going to treat the line number as part of the method name as a way of handling
-                 // overloading
+                 Stack<Integer> currentThreadMethodStack = threadQuarkToMethodQuarkStackMap.get(threadQuark);
+                 if (currentThreadMethodStack == null) {
+                	 currentThreadMethodStack = new Stack<Integer>();
+                	 threadQuarkToMethodQuarkStackMap.put(threadQuark, currentThreadMethodStack);
+                 }
+                 
+                 // Note that we cannot actually use the line number as a part of the name here because of the fact
+                 // that the line number on exits are actually the line it exited the function, not the closing brace
                  methodName = className + "." + methodName;// + " [line " + lineno + "]";                 
                  
                  // get/create quark for this method call on this thread
                  Integer methodQuark = ss.getQuarkRelativeAndAdd(threadQuark, methodName);
+                 System.out.println("added quark="+methodQuark+" for " + methodName); //FIXME
                  
-                 String fullName = ss.getFullAttributePath(methodQuark);
+                 //String fullName = ss.getFullAttributePath(methodQuark);
+                 
+                 ITmfStateValue threadValue;
                  
                  //update the state for this method quark
                  int methodStatusQuark = ss.getQuarkRelativeAndAdd(methodQuark, Attributes.STATUS);
+                 System.out.println("added STATUS quark="+methodStatusQuark+" for " + methodName); //FIXME
                  if (isEntry) {
-                	 value = TmfStateValue.newValueInt(StateValues.RUNNING);               	 
+                	 //we are entering this function, we need to get the value currently on the stack and add 
+                	 //a null value for it (ending it) and then emit a new running value for this method
+                	 if (!currentThreadMethodStack.empty()) {
+                		 Integer currentMethodQuark = currentThreadMethodStack.peek();	
+                		 int currentMethodStatusQuark = ss.getQuarkRelativeAndAdd(currentMethodQuark,Attributes.STATUS);
+                		 System.out.println("added STATUS quark="+currentMethodStatusQuark+" for pushed method quark=" + currentMethodQuark); //FIXME
+                		 ss.modifyAttribute(ts, NULL_VALUE, currentMethodStatusQuark);	                	 
+                	 }
+                	 value = RUNNING_VALUE;
+                	 threadValue = value;
+                	 currentThreadMethodStack.push(methodQuark);
                  } else {
-                	 value = TmfStateValue.nullValue();
+                	  // we are exiting the current method.  We need to pop it off the stack and then reactivate the 
+                	 // on that is left on the top of the stack
+                	 value = NULL_VALUE;
+                	 threadValue = value;
+                	 
+                	 // it is possible to have this happen depending on when tracing was enabled
+                	 if (!currentThreadMethodStack.empty() ) {
+                		 currentThreadMethodStack.pop();
+                	 }
+                	 if (!currentThreadMethodStack.empty()) {
+	                	 Integer currentMethodQuark = currentThreadMethodStack.peek();
+	                	 if (currentMethodQuark != null) {
+	                		 int currentMethodStatusQuark = ss.getQuarkRelativeAndAdd(currentMethodQuark,Attributes.STATUS);
+	                		 System.out.println("added STATUS quark="+currentMethodStatusQuark+" for popped method quark=" + currentMethodQuark); //FIXME
+	                		 ss.modifyAttribute(ts,RUNNING_VALUE, currentMethodStatusQuark);
+	                		 threadValue = RUNNING_VALUE;
+	                	 } 
+                	 }                	 
                  }
                  ss.modifyAttribute(ts, value, methodStatusQuark);       
-                 // here we are also going to modify the status quark for the class itself so that it also appears to be running or not 
+                
+                 // here we are also going to modify the status quark for the class itself so that it also appears to be running or not                  
                  // in the given interval
                  int threadStatusQuark = ss.getQuarkRelativeAndAdd(threadQuark,Attributes.STATUS);
-            	 ss.modifyAttribute(event.getTrace().getStartTime().getValue(),value, threadStatusQuark);  
+                 System.out.println("added STATUS quark="+threadStatusQuark+" for threadWithQuark=" + threadQuark); //FIXME
+            	 ss.modifyAttribute(ts,threadValue, threadStatusQuark);                
             	
             } else {
             	// it is some other event we do not care about

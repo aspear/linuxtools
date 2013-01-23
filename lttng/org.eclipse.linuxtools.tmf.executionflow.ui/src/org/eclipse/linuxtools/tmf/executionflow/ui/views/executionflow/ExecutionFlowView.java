@@ -247,9 +247,8 @@ public class ExecutionFlowView extends TmfView {
                 if (result == 0) {
                     result = entry1.getTrace().getName().compareTo(entry2.getTrace().getName());
                 }
-                if (result == 0) {
-                	
-                    result = (entry1.getNodeQuark() < entry2.getNodeQuark()) ? -1 : entry1.getNodeQuark() > entry2.getNodeQuark() ? 1 : 0;
+                if (result == 0) {                	
+                   result = (entry1.getNodeQuark() < entry2.getNodeQuark()) ? -1 : entry1.getNodeQuark() > entry2.getNodeQuark() ? 1 : 0;                
                 }
             }
 
@@ -507,7 +506,7 @@ public class ExecutionFlowView extends TmfView {
             }
             // FIXME this does not work at all
             if (trace instanceof CtfExecutionTrace) {
-            	System.err.println("FIXME syntToTime is broken");
+            	System.err.println("FIXME sychToTime is broken");
                 CtfExecutionTrace ctfKernelTrace = (CtfExecutionTrace) trace;
                 ITmfStateSystem ssq = ctfKernelTrace.getStateSystem(CtfExecutionTrace.STATE_ID);
                 if (time >= ssq.getStartTime() && time <= ssq.getCurrentEndTime()) {
@@ -629,18 +628,94 @@ public class ExecutionFlowView extends TmfView {
                 
                 //FIXME there must be some better way to iterate and get the quarks than what I am doing here
                 
-                List<Integer> threadQuarks = ssq.getQuarks(Attributes.THREADS, "*"); //$NON-NLS-1$
-                for (Integer threadQuark : threadQuarks) {
-                	String threadName = ssq.getAttributeName(threadQuark);
-                	                	
-                	//munge together a flow entry for the thread itself.  Note that the parent of this one is -1
-                	ExecutionFlowEntry threadEntry = new ExecutionFlowEntry(threadQuark, ctfExecutionTrace, threadName,"",-1, start, start, end);
-                    entryList.add(threadEntry);
-                    threadEntry.addEvent(new TimeEvent(threadEntry, start, end - start));
-                    
+				List<Integer> threadQuarks = ssq.getQuarks(Attributes.THREADS, "*"); //$NON-NLS-1$
+				for (Integer threadQuark : threadQuarks) {
+					String threadName = ssq.getAttributeName(threadQuark);
+					
+					if (threadName.equals(Attributes.STATUS)) {
+						continue;
+					}
+
+					// munge together a flow entry for the thread itself. Note
+					// that the parent of this one is -1
+					ExecutionFlowEntry threadEntry = new ExecutionFlowEntry(threadQuark, ctfExecutionTrace, threadName,
+							"", -1, start, start, end);
+					entryList.add(threadEntry);
+					threadEntry.addEvent(new TimeEvent(threadEntry, start, end - start));
+
+					/*
+					// get all status events for the thread itself here
+					try {
+
+						long birthTime = -1;
+						List<Integer> threadStatusQuarks = ssq.getQuarks(Attributes.THREADS, threadName,
+								Attributes.STATUS);
+						for (Integer threadStatusQuark : threadStatusQuarks) {
+							List<ITmfStateInterval> threadIntervals = ssq.queryHistoryRange(threadStatusQuark, start,
+									end - 1); // use monitor when
+												// available in
+												// api
+							if (monitor.isCanceled()) {
+								return;
+							}							
+							
+							for (ITmfStateInterval threadInterval : threadIntervals) {
+								if (monitor.isCanceled()) {
+									return;
+								}
+								birthTime = -1;
+								if (!threadInterval.getStateValue().isNull()) {
+
+									byte type = threadInterval.getStateValue().getType();
+									if (type == 0) {
+										long startTime = threadInterval.getStartTime();
+										long endTime = threadInterval.getEndTime() + 1;
+										if (birthTime == -1) {
+											birthTime = startTime;
+										}
+										ExecutionFlowEntry entry = new ExecutionFlowEntry(threadQuark,
+												ctfExecutionTrace, threadName, "", -1, birthTime, startTime, endTime);
+										entryList.add(entry);
+										entry.addEvent(new TimeEvent(entry, startTime, endTime - startTime));
+									}
+								}
+							}
+						}
+					} catch (AttributeNotFoundException e) {
+						e.printStackTrace();
+					} catch (TimeRangeException e) {
+						e.printStackTrace();
+					} // catch (StateValueTypeException e) {
+						// e.printStackTrace();
+						// }
+					catch (StateSystemDisposedException e) {
+						 //Ignored 
+					}      
+					*/         	
+                	
+                	                   
                 	List<Integer> methodQuarks = ssq.getQuarks(Attributes.THREADS, threadName,"*");
 	                for (Integer methodQuark : methodQuarks) {
-	                	String methodName = ssq.getAttributeName(methodQuark);	                	
+	                	String methodName = ssq.getAttributeName(methodQuark);
+	                	
+	                	// methodName here includes the full class and everything.  split it up so that we have class and method separate.
+                		String className = "";
+                		String execName = methodName;
+                		
+                		// TODO make this data driven, coming from the state system perhaps
+                		int methodDotIndex = methodName.lastIndexOf('.');
+                		if (methodDotIndex != -1) {
+                			int packageDotIndex = methodName.lastIndexOf('.', methodDotIndex-1);
+                			if (packageDotIndex != -1) {
+                    			execName = methodName.substring(packageDotIndex+1);
+                    			className = methodName.substring(0, packageDotIndex);
+                			} else {
+                				execName = methodName.substring(methodDotIndex+1);
+                    			className = methodName.substring(0, methodDotIndex);
+                			}
+                		}
+                		
+	                	long birthTime = -1;
 	                	List<Integer> statusQuarks = ssq.getQuarks(Attributes.THREADS, threadName, methodName, Attributes.STATUS);
 	                	for (Integer statusQuark : statusQuarks) {
 		                    if (monitor.isCanceled()) {
@@ -654,45 +729,31 @@ public class ExecutionFlowView extends TmfView {
 		                        if (monitor.isCanceled()) {
 		                            return;
 		                        }
-		                        long birthTime = -1;
-		                        for (ITmfStateInterval methodInterval : methodIntervals) {
-		                            if (monitor.isCanceled()) {
-		                                return;
-		                            }
-		                            birthTime = -1;
-		                            if (!methodInterval.getStateValue().isNull()) {
-		                            	
-		                            	byte type =  methodInterval.getStateValue().getType();
-		                            	if (type== 0) {
-		                            		// methodName here includes the full class and everything.  split it up so that we have class and method separate.
-		                            		String className = "";
-		                            		String execName = methodName;
-		                            		
-		                            		// TODO make this data driven, coming from the state system perhaps
-		                            		int methodDotIndex = methodName.lastIndexOf('.');
-		                            		if (methodDotIndex != -1) {
-		                            			int packageDotIndex = methodName.lastIndexOf('.', methodDotIndex-1);
-		                            			if (packageDotIndex != -1) {
-			                            			execName = methodName.substring(packageDotIndex+1);
-			                            			className = methodName.substring(0, packageDotIndex);
-		                            			} else {
-		                            				execName = methodName.substring(methodDotIndex+1);
-			                            			className = methodName.substring(0, methodDotIndex);
-		                            			}
-		                            		}
-		                            					                                
-			                                long startTime = methodInterval.getStartTime();
-			                                long endTime = methodInterval.getEndTime() + 1;
-			                                if (birthTime == -1) {
-			                                    birthTime = startTime;
-			                                }
-			                               
-			                                ExecutionFlowEntry entry = new ExecutionFlowEntry(methodQuark, ctfExecutionTrace, execName, className,threadQuark, birthTime, startTime, endTime);
-			                                entryList.add(entry);
-			                                entry.addEvent(new TimeEvent(entry, startTime, endTime - startTime));
-		                            	 }
-		                            } 
-		                        }
+		                        
+		                        // here we have a list of all instances of the method being called for this thread.  We want to create ONE ExecutionFlowEntry
+		                        // for all of these calls so that it is drawn in the same row on the graph.  Lets collect the start and end times of the method
+		                        // calls and scope the control flow entry to that.  The actual states (running, not running) are done via the events contained
+		                        // within the entry
+		                        long methodStartTime = end;
+		                        long methodEndTime = start;
+		                        long methodBirthTime = -1;
+		                        
+								for (ITmfStateInterval methodInterval : methodIntervals) {
+									if (monitor.isCanceled()) {
+										return;
+									}
+
+									methodStartTime = Math.min(methodStartTime, methodInterval.getStartTime());
+									methodEndTime = Math.max(methodEndTime, methodInterval.getEndTime() + 1);
+
+									if (methodBirthTime == -1) {
+										methodBirthTime = methodStartTime;
+									}
+								}
+                                ExecutionFlowEntry entry = new ExecutionFlowEntry(methodQuark, ctfExecutionTrace, execName, className,threadQuark, methodBirthTime, methodStartTime, methodEndTime);
+                                entryList.add(entry);
+                                entry.addEvent(new TimeEvent(entry, methodStartTime, methodEndTime - methodStartTime));
+                                
 		                    } catch (AttributeNotFoundException e) {
 		                        e.printStackTrace();
 		                    } catch (TimeRangeException e) {
@@ -747,6 +808,9 @@ public class ExecutionFlowView extends TmfView {
                         break;
                     }
                 }
+                if (root == true) {
+                	System.err.println("entry" + entry.getName() + " parentQuark=" + entry.getParentQuark() + " not found");
+                }
             }
             if (root) {
                 rootList.add(entry);
@@ -785,7 +849,9 @@ public class ExecutionFlowView extends TmfView {
         }
         ITmfStateSystem ssq = entry.getTrace().getStateSystem(CtfExecutionTrace.STATE_ID);
         List<ITimeEvent> eventList = null;
+        int currentQuark = -1;
         try {
+        	currentQuark = entry.getNodeQuark();
             int statusQuark = ssq.getQuarkRelative(entry.getNodeQuark(), Attributes.STATUS);
             List<ITmfStateInterval> statusIntervals = ssq.queryHistoryRange(statusQuark, startTime, endTime - 1, resolution, monitor);
             eventList = new ArrayList<ITimeEvent>(statusIntervals.size());
@@ -809,6 +875,7 @@ public class ExecutionFlowView extends TmfView {
                 lastEndTime = time + duration;
             }
         } catch (AttributeNotFoundException e) {
+        	System.err.println("attribute not found in quark " + currentQuark + " " + ssq.getAttributeName(currentQuark));
             e.printStackTrace();
         } catch (TimeRangeException e) {
             e.printStackTrace();
