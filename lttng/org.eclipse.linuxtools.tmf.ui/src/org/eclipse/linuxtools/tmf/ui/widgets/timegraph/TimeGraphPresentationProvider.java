@@ -141,7 +141,11 @@ public class TimeGraphPresentationProvider implements ITimeGraphPresentationProv
 
         ITmfEvent tmfEvent = event.getTmfEvent();
         if (tmfEvent != null) {
+
             Map<String,String> retMap = new LinkedHashMap<String,String>();
+
+            retMap.put("Event Type",tmfEvent.getType().getName());
+            retMap.put("Source",tmfEvent.getSource());
 
             ITmfEventField[] fields = tmfEvent.getContent().getFields();
             if (fields != null) {
@@ -151,6 +155,7 @@ public class TimeGraphPresentationProvider implements ITimeGraphPresentationProv
             }
             return retMap;
          }
+
          return null;
     }
 
