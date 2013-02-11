@@ -12,6 +12,9 @@
 
 package org.eclipse.linuxtools.internal.tmf.executiontrace.core.stateprovider;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
@@ -30,6 +33,7 @@ import org.eclipse.linuxtools.tmf.core.statesystem.AbstractStateChangeInput;
 import org.eclipse.linuxtools.tmf.core.statesystem.ITmfStateSystemBuilder;
 import org.eclipse.linuxtools.tmf.core.statevalue.ITmfStateValue;
 import org.eclipse.linuxtools.tmf.core.statevalue.TmfStateValue;
+import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.StateItem;
 
 /**
  * This is the state change input plugin for TMF's state system which handles
@@ -45,7 +49,12 @@ public class CtfExecutionStateInput extends AbstractStateChangeInput {
 	private static final ITmfStateValue  RUNNING_VALUE = TmfStateValue.newValueInt(StateValues.RUNNING);
 	private static final ITmfStateValue  NULL_VALUE = TmfStateValue.nullValue();
 	
-	Map<Integer,Stack<Integer> > threadQuarkToMethodQuarkStackMap = new HashMap<Integer,Stack<Integer>>();
+	private Map<Integer,Stack<Integer> > threadQuarkToMethodQuarkStackMap = new HashMap<Integer,Stack<Integer>>();
+	
+	private StateInfo stateInfo = new StateInfo();
+	private int currentContextQuark = -1;
+	private StateItem[] possibleStates=null;
+	
   /**
      * Instantiate a new state provider plugin.
      *
@@ -54,6 +63,24 @@ public class CtfExecutionStateInput extends AbstractStateChangeInput {
      */
     public CtfExecutionStateInput(CtfTmfTrace trace) {
         super(trace, CtfTmfEvent.class, "LTTng Execution"); //$NON-NLS-1$
+        
+        // FIXME as an interim step, we check to see if the given trace has the special xml file
+        // in the trace directory we are using to describe the state schema
+        File traceDirectory = trace.getCTFTrace().getTraceDirectory();
+        File stateSchemaXml = new File(traceDirectory,trace.getName() + ".state-schema.xml");
+        if (stateSchemaXml.exists() && stateSchemaXml.isFile()) {
+        	try {
+        		stateInfo.parseInfoText(new BufferedInputStream(new FileInputStream(stateSchemaXml)));
+        		possibleStates = stateInfo.getAllStates();
+        	}catch(Exception e) {
+        		System.err.println("Error parsing state schema file " + e.getMessage() + " " + stateSchemaXml.getAbsolutePath());
+        		//FIXME BETTER LOGGING HERE
+        		e.printStackTrace();
+        	}
+        } else {
+        	System.out.println("Trace " + trace.getName() + " does NOT have a state schema file " + stateSchemaXml.getAbsolutePath());
+        }
+        
     }
 
     @Override
@@ -68,6 +95,8 @@ public class CtfExecutionStateInput extends AbstractStateChangeInput {
          * AbstractStateChangeInput should have already checked for the correct
          * class type
          */
+    	
+    	
         CtfTmfEvent event = (CtfTmfEvent) ev;
        
         final String eventName = event.getEventName();      
@@ -163,7 +192,23 @@ public class CtfExecutionStateInput extends AbstractStateChangeInput {
             	 ss.modifyAttribute(ts,threadValue, threadStatusQuark);                
             	
             } else {
-            	// it is some other event we do not care about
+            	
+            	int contextQuark = -1;            	
+            	
+            	// check to see if there are context changes that can be extracted from this event
+            	String[] parentAndThisContext = stateInfo.getContext(event);
+            	if (parentAndThisContext != null) {            		
+            		String parent = parentAndThisContext[0];
+            		String currentContext = parentAndThisContext[1];
+            		contextQuark=ss.getQuarkAbsoluteAndAdd(parent,currentContext);            		
+            	}
+            	//check to see if there is new state that we can extract for this event
+            	StateItem newState = stateInfo.getNewState(event);
+            	if (newState != null) {
+            		
+            	}
+            	
+            	
             }
        } catch (AttributeNotFoundException ae) {
             /*

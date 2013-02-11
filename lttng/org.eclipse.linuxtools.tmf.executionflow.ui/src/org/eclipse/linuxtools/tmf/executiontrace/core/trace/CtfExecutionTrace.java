@@ -56,25 +56,26 @@ public class CtfExecutionTrace extends CtfTmfTrace {
 
     @Override
     public boolean validate(final IProject project, final String path) {
-        CTFTrace temp;
-        /*
-         * Make sure the trace is openable as a CTF trace. We do this here
-         * instead of calling super.validate() to keep the reference to "temp".
-         */
+        /*CTFTrace temp;
+        
+        // Make sure the trace is openable as a CTF trace. We do this here
+        // instead of calling super.validate() to keep the reference to "temp".
         try {
             temp = new CTFTrace(path);
         } catch (CTFReaderException e) {
             return false;
         }
 
-        /* Make sure the domain is "ust" in the trace's env vars as it is what is 
-         * used for the execution tracing.  TODO figure out some other annotation in the metadata
-         * that uniquely identifies the execution tracing */
+        //Make sure the domain is "ust" in the trace's env vars as it is what is 
+        // used for the execution tracing.  TODO figure out some other annotation in the metadata
+        // that uniquely identifies the execution tracing
         String dom = temp.getEnvironment().get("domain"); //$NON-NLS-1$
         if (dom != null && dom.equals("\"ust\"")) { //$NON-NLS-1$
             return true;
         }
         return false;
+        */
+    	return true;
     }
 
     @Override
