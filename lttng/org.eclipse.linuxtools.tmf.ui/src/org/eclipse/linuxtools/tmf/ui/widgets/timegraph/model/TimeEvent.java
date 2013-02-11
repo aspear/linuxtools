@@ -12,6 +12,8 @@
 
 package org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model;
 
+import org.eclipse.linuxtools.tmf.core.event.ITmfEvent;
+
 /**
  * Generic TimeEvent implementation
  *
@@ -59,4 +61,10 @@ public class TimeEvent implements ITimeEvent {
     public long getDuration() {
         return fDuration;
     }
+
+    @Override
+    public ITmfEvent getTmfEvent() {
+         return null;
+    }
+
 }

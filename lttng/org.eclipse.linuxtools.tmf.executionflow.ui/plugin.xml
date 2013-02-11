@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+   <extension
+         point="org.eclipse.ui.views">
+      <category
+            name="LTTng"
+            id="org.eclipse.linuxtools.tmf.executionflow.ui">
+      </category>
+      <view
+            name="Execution Flow View"
+            icon="icons/sample.gif"
+            category="org.eclipse.linuxtools.tmf.executionflow.ui"
+            class="org.eclipse.linuxtools.tmf.executionflow.ui.views.executionflow.ExecutionFlowView"
+            id="org.eclipse.linuxtools.tmf.executionflow.ui.views.executionflow.ExecutionFlowView">
+      </view>
+   </extension>
+   <extension
+         point="org.eclipse.ui.perspectiveExtensions">
+      <perspectiveExtension
+            targetID="org.eclipse.jdt.ui.JavaPerspective">
+         <view
+               ratio="0.5"
+               relative="org.eclipse.ui.views.ProblemView"
+               relationship="right"
+               id="org.eclipse.linuxtools.tmf.executionflow.ui.views.executionflow.ExecutionFlowView">
+         </view>
+      </perspectiveExtension>
+   </extension>
+   <extension
+         point="org.eclipse.help.contexts">
+      <contexts
+            file="contexts.xml">
+      </contexts>
+   </extension>
+   
+    <extension
+         point="org.eclipse.linuxtools.tmf.ui.tracetype">
+      <type
+            category="org.eclipse.linuxtools.tmf.ui.category.ctf"
+            event_type="org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent"
+            icon="icons/sample.gif"
+            id="org.eclipse.linuxtools.tmf.executionflow.tracetype"
+            name="%tracetype.type.execution"
+            trace_type="org.eclipse.linuxtools.tmf.executiontrace.core.trace.CtfExecutionTrace">
+         <eventsTableType
+               class="org.eclipse.linuxtools.internal.tmf.executionflow.ui.viewers.events.ExecutionFlowEventsTable">
+         </eventsTableType>
+      </type>
+   </extension>
+
+</plugin>

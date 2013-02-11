@@ -13,6 +13,8 @@
 
 package org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model;
 
+import org.eclipse.linuxtools.tmf.core.event.ITmfEvent;
+
 /**
  * Interface for time events, for use in the timegraph view
  *
@@ -46,5 +48,12 @@ public interface ITimeEvent {
      * <p>
      */
     public long getDuration();
+
+    /**
+     * if this time event corresponds to a TMF event, return the underlying event
+     * Aaron Spear added this
+     * @return the event , null if unavailable
+     */
+    public ITmfEvent getTmfEvent();
 
 }
