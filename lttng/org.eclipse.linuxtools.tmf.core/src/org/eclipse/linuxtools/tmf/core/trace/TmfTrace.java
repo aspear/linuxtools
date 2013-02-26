@@ -16,11 +16,13 @@ package org.eclipse.linuxtools.tmf.core.trace;
 import java.io.File;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.linuxtools.tmf.core.TmfCommonConstants;
 import org.eclipse.linuxtools.tmf.core.component.TmfEventProvider;
 import org.eclipse.linuxtools.tmf.core.event.ITmfEvent;
 import org.eclipse.linuxtools.tmf.core.event.ITmfTimestamp;
@@ -34,7 +36,9 @@ import org.eclipse.linuxtools.tmf.core.signal.TmfSignalHandler;
 import org.eclipse.linuxtools.tmf.core.signal.TmfTimeSynchSignal;
 import org.eclipse.linuxtools.tmf.core.signal.TmfTraceOpenedSignal;
 import org.eclipse.linuxtools.tmf.core.signal.TmfTraceRangeUpdatedSignal;
+import org.eclipse.linuxtools.tmf.core.statesystem.IStateSystemFactory;
 import org.eclipse.linuxtools.tmf.core.statesystem.ITmfStateSystem;
+import org.eclipse.linuxtools.tmf.core.statesystem.StateSystemFactoryManager;
 import org.eclipse.linuxtools.tmf.core.statistics.ITmfStatistics;
 import org.eclipse.linuxtools.tmf.core.statistics.TmfStateStatistics;
 
@@ -304,11 +308,47 @@ public abstract class TmfTrace extends TmfEventProvider implements ITmfTrace {
      */
     @SuppressWarnings("unused")
     protected void buildStateSystem() throws TmfTraceException {
-        /*
-         * Nothing is done in the base implementation, please specify
-         * how/if to register a new state system in derived classes.
+
+        /** derived classes may overload this method to specify dedicated state system behavior.
+         *
+         * The base class does now optionally allow "mixing in" an implementation of a state provider
+         * that can come from other plugins.  To do this we get a list of factories that support
+         * this particular trace instance.
          */
-        return;
+        IResource resource = this.getResource();
+        String selectedStateFactoryId = null;
+
+        try {
+            // get the desired state factory id if it exists
+            selectedStateFactoryId = resource.getPersistentProperty(TmfCommonConstants.TRACE_SELECTED_STATE_PROVIDER);
+        } catch (CoreException e) {
+            throw new TmfTraceException(e.toString(), e);
+        }
+
+        IStateSystemFactory selectedStateFactory = null;
+
+        if (selectedStateFactoryId != null) {
+            selectedStateFactory = StateSystemFactoryManager.getInstance().getFactoryById(selectedStateFactoryId);
+        } else {
+            // get the list of all factories that work for this particular trace.
+            List<IStateSystemFactory> availableStateSystemFactories = StateSystemFactoryManager.getInstance().getFactoriesForTrace(this);
+            if (availableStateSystemFactories.size() > 0) {
+                //TODO we need a mechanism to select this if we need to support the case of there being multiple possibilities.  assume for now
+                //that there will only be one
+                selectedStateFactory = availableStateSystemFactories.get(0);
+            }
+        }
+        if (selectedStateFactory != null) {
+            ITmfStateSystem ss = selectedStateFactory.createStateSystem(this);
+            if (ss != null) {
+                fStateSystems.put(selectedStateFactory.getStateSystemId(), ss);
+                try {
+                    resource.setPersistentProperty(TmfCommonConstants.TRACE_SELECTED_STATE_PROVIDER, selectedStateFactory.getStateSystemId());
+                }catch(CoreException e) {
+                    throw new TmfTraceException(e.toString(), e);
+                }
+            }
+        }
     }
 
     /**
