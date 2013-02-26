@@ -37,6 +37,9 @@ public abstract class CustomTraceDefinition {
     /** Timestamp tag */
     public static final String TAG_TIMESTAMP = Messages.CustomTraceDefinition_timestampTag;
 
+    /** optional event type tag */
+    public static final String TAG_EVENT_TYPE = Messages.CustomTraceDefinition_eventTypeTag;
+
     /** Message tag */
     public static final String TAG_MESSAGE = Messages.CustomTraceDefinition_messageTag;
 

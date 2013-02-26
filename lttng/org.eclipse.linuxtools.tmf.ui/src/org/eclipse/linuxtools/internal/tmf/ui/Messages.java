@@ -37,6 +37,7 @@ public class Messages extends NLS {
     public static String CustomTraceDefinition_messageTag;
     public static String CustomTraceDefinition_otherTag;
     public static String CustomTraceDefinition_timestampTag;
+    public static String CustomTraceDefinition_eventTypeTag;
     public static String CustomTxtTraceDefinition_action;
     public static String CustomTxtTraceDefinition_cardinality;
     public static String CustomTxtTraceDefinition_definition;
