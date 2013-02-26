@@ -192,13 +192,13 @@ public class StateInfo {
 			 throw new IOException(e);
 		}
         
-        NodeList hierarchyNodes = configDoc.getElementsByTagName(CONTEXT_HIERARCHY_ELEMENT);
-        if ((hierarchyNodes == null) || (hierarchyNodes.getLength() != 1)) {
-           throw new IOException("There can be only one " + CONTEXT_HIERARCHY_ELEMENT);
-        }        
-        Element hierarchyNode = (Element) hierarchyNodes.item(0);
+        //NodeList hierarchyNodes = configDoc.getElementsByTagName(CONTEXT_HIERARCHY_ELEMENT);
+        //if ((hierarchyNodes == null) || (hierarchyNodes.getLength() > 1)) {
+        //   throw new IOException("There can be only one " + CONTEXT_HIERARCHY_ELEMENT);
+        //}        
+        //Element hierarchyNode = (Element) hierarchyNodes.item(0);
         //Element nameElement = (Element) format.getElementsByTagName("Name").item(0);
-        String contextHierarchy = hierarchyNode.getTextContent();
+        //String contextHierarchy = hierarchyNode.getTextContent();
        
         parseStateDeclarations(configDoc);
         
@@ -260,9 +260,12 @@ public class StateInfo {
             for (int s=0;s<stateNodes.getLength();++s) {
             	Element stateElem = (Element)stateNodes.item(s);
             	String stateName = stateElem.getAttribute("name");
+            	RGB rgb = null;
             	String[] rgbString = stateElem.getAttribute("rgb").split(",");
-            	//TODO error checking
-            	RGB rgb = new RGB(Integer.parseInt(rgbString[0]),Integer.parseInt(rgbString[1]),Integer.parseInt(rgbString[2]));
+            	if (rgbString.length == 3) {
+            		//TODO error checking
+            		rgb = new RGB(Integer.parseInt(rgbString[0]),Integer.parseInt(rgbString[1]),Integer.parseInt(rgbString[2]));
+            	}
             	StateItem stateItem = new StateItem(rgb,stateName);
             	stateItemList.add(stateItem);
             	
@@ -318,7 +321,7 @@ public class StateInfo {
 	 * get all states supported for this context
 	 * @return
 	 */
-	public StateItem[] getAllStates() {
+	public final StateItem[] getAllStates() {
 		return states;
 	}
 	

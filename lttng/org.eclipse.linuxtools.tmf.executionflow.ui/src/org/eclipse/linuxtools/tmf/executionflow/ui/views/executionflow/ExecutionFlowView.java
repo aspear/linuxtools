@@ -225,7 +225,7 @@ public class ExecutionFlowView extends TmfView {
             } else if (columnIndex == 2) {
                 return Integer.toHexString(entry.getParentQuark());
             } else if (columnIndex == 3) {
-                return Utils.formatTime(entry.getBirthTime(), TimeFormat.ABSOLUTE, Resolution.NANOSEC);
+                return Utils.formatTime(entry.getBirthTime(), TimeFormat.CALENDAR, Resolution.NANOSEC);
             } else if (columnIndex == 4) {
                 return entry.getTrace().getName();
             }
@@ -396,7 +396,7 @@ public class ExecutionFlowView extends TmfView {
             }
         });
 
-        fTimeGraphCombo.getTimeGraphViewer().setTimeCalendarFormat(true);
+        //FIXME not sure what this should be changed to fTimeGraphCombo.getTimeGraphViewer().setTimeCalendarFormat(true);
 
         // View Action Handling
         makeActions();
@@ -506,7 +506,7 @@ public class ExecutionFlowView extends TmfView {
             }
             // FIXME this does not work at all
             if (trace instanceof CtfExecutionTrace) {
-            	System.err.println("FIXME sychToTime is broken");
+            	System.err.println("FIXME synchToTime is broken");
                 CtfExecutionTrace ctfKernelTrace = (CtfExecutionTrace) trace;
                 ITmfStateSystem ssq = ctfKernelTrace.getStateSystem(CtfExecutionTrace.STATE_ID);
                 if (time >= ssq.getStartTime() && time <= ssq.getCurrentEndTime()) {

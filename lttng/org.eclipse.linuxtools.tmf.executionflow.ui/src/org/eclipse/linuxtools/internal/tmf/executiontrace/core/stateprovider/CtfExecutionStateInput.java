@@ -51,10 +51,6 @@ public class CtfExecutionStateInput extends AbstractStateChangeInput {
 	
 	private Map<Integer,Stack<Integer> > threadQuarkToMethodQuarkStackMap = new HashMap<Integer,Stack<Integer>>();
 	
-	private StateInfo stateInfo = new StateInfo();
-	private int currentContextQuark = -1;
-	private StateItem[] possibleStates=null;
-	
   /**
      * Instantiate a new state provider plugin.
      *
@@ -62,25 +58,7 @@ public class CtfExecutionStateInput extends AbstractStateChangeInput {
      *            The LTTng 2.0 kernel trace directory
      */
     public CtfExecutionStateInput(CtfTmfTrace trace) {
-        super(trace, CtfTmfEvent.class, "LTTng Execution"); //$NON-NLS-1$
-        
-        // FIXME as an interim step, we check to see if the given trace has the special xml file
-        // in the trace directory we are using to describe the state schema
-        File traceDirectory = trace.getCTFTrace().getTraceDirectory();
-        File stateSchemaXml = new File(traceDirectory,trace.getName() + ".state-schema.xml");
-        if (stateSchemaXml.exists() && stateSchemaXml.isFile()) {
-        	try {
-        		stateInfo.parseInfoText(new BufferedInputStream(new FileInputStream(stateSchemaXml)));
-        		possibleStates = stateInfo.getAllStates();
-        	}catch(Exception e) {
-        		System.err.println("Error parsing state schema file " + e.getMessage() + " " + stateSchemaXml.getAbsolutePath());
-        		//FIXME BETTER LOGGING HERE
-        		e.printStackTrace();
-        	}
-        } else {
-        	System.out.println("Trace " + trace.getName() + " does NOT have a state schema file " + stateSchemaXml.getAbsolutePath());
-        }
-        
+        super(trace, CtfTmfEvent.class, "LTTng Execution"); //$NON-NLS-1$       
     }
 
     @Override
@@ -95,9 +73,7 @@ public class CtfExecutionStateInput extends AbstractStateChangeInput {
          * AbstractStateChangeInput should have already checked for the correct
          * class type
          */
-    	
-    	
-        CtfTmfEvent event = (CtfTmfEvent) ev;
+    	CtfTmfEvent event = (CtfTmfEvent) ev;
        
         final String eventName = event.getEventName();      
 
@@ -191,25 +167,7 @@ public class CtfExecutionStateInput extends AbstractStateChangeInput {
                  //System.out.println("added STATUS quark="+threadStatusQuark+" for threadWithQuark=" + threadQuark); //FIXME
             	 ss.modifyAttribute(ts,threadValue, threadStatusQuark);                
             	
-            } else {
-            	
-            	int contextQuark = -1;            	
-            	
-            	// check to see if there are context changes that can be extracted from this event
-            	String[] parentAndThisContext = stateInfo.getContext(event);
-            	if (parentAndThisContext != null) {            		
-            		String parent = parentAndThisContext[0];
-            		String currentContext = parentAndThisContext[1];
-            		contextQuark=ss.getQuarkAbsoluteAndAdd(parent,currentContext);            		
-            	}
-            	//check to see if there is new state that we can extract for this event
-            	StateItem newState = stateInfo.getNewState(event);
-            	if (newState != null) {
-            		
-            	}
-            	
-            	
-            }
+            } 
        } catch (AttributeNotFoundException ae) {
             /*
              * This would indicate a problem with the logic of the manager here,

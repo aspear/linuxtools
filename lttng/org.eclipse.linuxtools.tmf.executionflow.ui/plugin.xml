@@ -49,5 +49,12 @@
          </eventsTableType>
       </type>
    </extension>
+    <extension 
+         point="org.eclipse.linuxtools.tmf.ui.statesystemfactory">
+         <type
+         	id="org.eclipse.linuxtools.tmf.executionflow.datadrivenstate"         	
+         	class="org.eclipse.linuxtools.internal.tmf.executiontrace.core.stateprovider.DataDrivenStateInputFactory">
+         </type>
+    </extension>
 
 </plugin>
