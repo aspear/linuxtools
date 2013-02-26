@@ -6,14 +6,14 @@
          point="org.eclipse.ui.views">
       <category
             name="LTTng"
-            id="org.eclipse.linuxtools.tmf.executionflow.ui">
+            id="org.eclipse.linuxtools.tmf.stateflow.ui">
       </category>
       <view
             name="Execution Flow View"
             icon="icons/sample.gif"
-            category="org.eclipse.linuxtools.tmf.executionflow.ui"
-            class="org.eclipse.linuxtools.tmf.executionflow.ui.views.executionflow.ExecutionFlowView"
-            id="org.eclipse.linuxtools.tmf.executionflow.ui.views.executionflow.ExecutionFlowView">
+            category="org.eclipse.linuxtools.tmf.stateflow.ui"
+            class="org.eclipse.linuxtools.tmf.stateflow.ui.views.stateflow.ExecutionFlowView"
+            id="org.eclipse.linuxtools.tmf.stateflow.ui.views.stateflow.ExecutionFlowView">
       </view>
    </extension>
    <extension
@@ -24,7 +24,7 @@
                ratio="0.5"
                relative="org.eclipse.ui.views.ProblemView"
                relationship="right"
-               id="org.eclipse.linuxtools.tmf.executionflow.ui.views.executionflow.ExecutionFlowView">
+               id="org.eclipse.linuxtools.tmf.stateflow.ui.views.stateflow.ExecutionFlowView">
          </view>
       </perspectiveExtension>
    </extension>
@@ -41,19 +41,19 @@
             category="org.eclipse.linuxtools.tmf.ui.category.ctf"
             event_type="org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent"
             icon="icons/sample.gif"
-            id="org.eclipse.linuxtools.tmf.executionflow.tracetype"
+            id="org.eclipse.linuxtools.tmf.stateflow.tracetype"
             name="%tracetype.type.execution"
-            trace_type="org.eclipse.linuxtools.tmf.executiontrace.core.trace.CtfExecutionTrace">
+            trace_type="org.eclipse.linuxtools.tmf.stateflow.core.trace.CtfExecutionTrace">
          <eventsTableType
-               class="org.eclipse.linuxtools.internal.tmf.executionflow.ui.viewers.events.ExecutionFlowEventsTable">
+               class="org.eclipse.linuxtools.internal.tmf.stateflow.ui.viewers.events.ExecutionFlowEventsTable">
          </eventsTableType>
       </type>
    </extension>
     <extension 
          point="org.eclipse.linuxtools.tmf.ui.statesystemfactory">
          <type
-         	id="org.eclipse.linuxtools.tmf.executionflow.datadrivenstate"         	
-         	class="org.eclipse.linuxtools.internal.tmf.executiontrace.core.stateprovider.DataDrivenStateInputFactory">
+         	id="org.eclipse.linuxtools.tmf.stateflow.datadrivenstate"         	
+         	class="org.eclipse.linuxtools.internal.tmf.stateflow.core.stateprovider.DataDrivenStateInputFactory">
          </type>
     </extension>
 
