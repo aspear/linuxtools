@@ -125,14 +125,14 @@ public class CtfExecutionStateInput extends AbstractStateChangeInput {
                  ITmfStateValue threadValue;
                  
                  //update the state for this method quark
-                 int methodStatusQuark = ss.getQuarkRelativeAndAdd(methodQuark, Attributes.STATUS);
+                 int methodStatusQuark = ss.getQuarkRelativeAndAdd(methodQuark, Attributes.STATE);
                 // System.out.println("added STATUS quark="+methodStatusQuark+" for " + methodName); //FIXME
                  if (isEntry) {
                 	 //we are entering this function, we need to get the value currently on the stack and add 
                 	 //a null value for it (ending it) and then emit a new running value for this method
                 	 if (!currentThreadMethodStack.empty()) {
                 		 Integer currentMethodQuark = currentThreadMethodStack.peek();	
-                		 int currentMethodStatusQuark = ss.getQuarkRelativeAndAdd(currentMethodQuark,Attributes.STATUS);
+                		 int currentMethodStatusQuark = ss.getQuarkRelativeAndAdd(currentMethodQuark,Attributes.STATE);
                 		 //System.out.println("added STATUS quark="+currentMethodStatusQuark+" for pushed method quark=" + currentMethodQuark); //FIXME
                 		 ss.modifyAttribute(ts, NULL_VALUE, currentMethodStatusQuark);	                	 
                 	 }
@@ -152,7 +152,7 @@ public class CtfExecutionStateInput extends AbstractStateChangeInput {
                 	 if (!currentThreadMethodStack.empty()) {
 	                	 Integer currentMethodQuark = currentThreadMethodStack.peek();
 	                	 if (currentMethodQuark != null) {
-	                		 int currentMethodStatusQuark = ss.getQuarkRelativeAndAdd(currentMethodQuark,Attributes.STATUS);
+	                		 int currentMethodStatusQuark = ss.getQuarkRelativeAndAdd(currentMethodQuark,Attributes.STATE);
 	                		 //System.out.println("added STATUS quark="+currentMethodStatusQuark+" for popped method quark=" + currentMethodQuark); //FIXME
 	                		 ss.modifyAttribute(ts,RUNNING_VALUE, currentMethodStatusQuark);
 	                		 threadValue = RUNNING_VALUE;
@@ -163,7 +163,7 @@ public class CtfExecutionStateInput extends AbstractStateChangeInput {
                 
                  // here we are also going to modify the status quark for the class itself so that it also appears to be running or not                  
                  // in the given interval
-                 int threadStatusQuark = ss.getQuarkRelativeAndAdd(threadQuark,Attributes.STATUS);
+                 int threadStatusQuark = ss.getQuarkRelativeAndAdd(threadQuark,Attributes.STATE);
                  //System.out.println("added STATUS quark="+threadStatusQuark+" for threadWithQuark=" + threadQuark); //FIXME
             	 ss.modifyAttribute(ts,threadValue, threadStatusQuark);                
             	

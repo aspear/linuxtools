@@ -27,10 +27,20 @@ package org.eclipse.linuxtools.internal.tmf.stateflow.core;
 @SuppressWarnings({"nls", "javadoc"})
 public abstract class Attributes {
 	
-	public static final String THREADS = "Threads";
+	public static final String STATE = "DDState";
+	
+	/**
+	 * @deprecated
+	 */
+	public static final String THREADS = "Threads"; 
+	
+	/**
+	 * @deprecated
+	 */
 	public static final String METHODS = "Methods";
+	
 	 // Sub-attributes
-    public static final String STATUS = "Status";
+    //public static final String STATUS = "Status";
 
     /*//First-level attributes 
     public static final String CPUS = "CPUs";

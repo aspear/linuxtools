@@ -6,20 +6,20 @@ import org.eclipse.osgi.util.NLS;
 public class Messages extends NLS {
     private static final String BUNDLE_NAME = "org.eclipse.linuxtools.internal.tmf.stateflow.ui.messages"; //$NON-NLS-1$
 
-    public static String ExecutionFlowView_birthTimeColumn;
-    public static String ExecutionFlowView_contextColumn;
-    public static String ExecutionFlowView_nameColumn;
-    public static String ExecutionFlowView_scopeColumn;
-    public static String ExecutionFlowView_traceColumn;
+    public static String StateFlowView_birthTimeColumn;
+    public static String StateFlowView_contextColumn;
+    public static String StateFlowView_nameColumn;
+    public static String StateFlowView_scopeColumn;
+    public static String StateFlowView_traceColumn;
 
-    public static String ExecutionFlowView_stateTypeName;
-    public static String ExecutionFlowView_nextProcessActionNameText;
-    public static String ExecutionFlowView_nextProcessActionToolTipText;
-    public static String ExecutionFlowView_previousProcessActionNameText;
-    public static String ExecutionFlowView_previousProcessActionToolTipText;
+    public static String StateFlowView_stateTypeName;
+    public static String StateFlowView_nextProcessActionNameText;
+    public static String StateFlowView_nextProcessActionToolTipText;
+    public static String StateFlowView_previousProcessActionNameText;
+    public static String StateFlowView_previousProcessActionToolTipText;
 
-    public static String ExecutionFlowView_attributeSyscallName;
-    public static String ExecutionFlowView_attributeCpuName;
+    public static String StateFlowView_attributeSyscallName;
+    public static String StateFlowView_attributeCpuName;
 
     public static String ResourcesView_stateTypeName;
     public static String ResourcesView_nextResourceActionNameText;

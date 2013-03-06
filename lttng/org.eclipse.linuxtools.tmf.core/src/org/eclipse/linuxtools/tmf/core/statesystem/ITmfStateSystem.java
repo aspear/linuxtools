@@ -363,4 +363,12 @@ public interface ITmfStateSystem {
             long t1, long t2, long resolution, IProgressMonitor monitor)
             throws TimeRangeException, AttributeNotFoundException,
             StateSystemDisposedException;
+
+    /**
+     * Return optional presentation information that helps to interpret the state
+     * values in the state system.
+     * @return the presentation info object, or null if not available.
+     * @since 2.0
+     */
+    public IStateSystemPresentationInfo  getStatePresentationInfo();
 }

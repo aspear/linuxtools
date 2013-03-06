@@ -30,6 +30,7 @@ import org.eclipse.linuxtools.tmf.core.exceptions.StateValueTypeException;
 import org.eclipse.linuxtools.tmf.core.exceptions.TimeRangeException;
 import org.eclipse.linuxtools.tmf.core.interval.ITmfStateInterval;
 import org.eclipse.linuxtools.tmf.core.interval.TmfStateInterval;
+import org.eclipse.linuxtools.tmf.core.statesystem.IStateSystemPresentationInfo;
 import org.eclipse.linuxtools.tmf.core.statesystem.ITmfStateSystemBuilder;
 import org.eclipse.linuxtools.tmf.core.statevalue.ITmfStateValue;
 import org.eclipse.linuxtools.tmf.core.statevalue.TmfStateValue;
@@ -53,6 +54,9 @@ public class StateSystem implements ITmfStateSystemBuilder {
     private final AttributeTree attributeTree;
     private final TransientState transState;
     private final IStateHistoryBackend backend;
+
+    /** optional presentation information */
+    private IStateSystemPresentationInfo presentationInfo = null;
 
     /* Latch tracking if the state history is done building or not */
     private final CountDownLatch finishedLatch = new CountDownLatch(1);
@@ -683,6 +687,16 @@ public class StateSystem implements ITmfStateSystemBuilder {
         attributeTree.debugPrint(writer);
         transState.debugPrint(writer);
         backend.debugPrint(writer);
+    }
+
+    @Override
+    public void setStatePresentationInfo( IStateSystemPresentationInfo info ) {
+        presentationInfo = info;
+    }
+
+    @Override
+    public IStateSystemPresentationInfo getStatePresentationInfo() {
+        return presentationInfo;
     }
 
 }

@@ -12,6 +12,7 @@
 
 package org.eclipse.linuxtools.tmf.stateflow.ui.views.stateflow;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,8 @@ import org.eclipse.linuxtools.tmf.core.exceptions.StateSystemDisposedException;
 import org.eclipse.linuxtools.tmf.core.exceptions.StateValueTypeException;
 import org.eclipse.linuxtools.tmf.core.exceptions.TimeRangeException;
 import org.eclipse.linuxtools.tmf.core.interval.ITmfStateInterval;
+import org.eclipse.linuxtools.tmf.core.statesystem.IStatePresentationInfo;
+import org.eclipse.linuxtools.tmf.core.statesystem.IStateSystemPresentationInfo;
 import org.eclipse.linuxtools.tmf.core.statesystem.ITmfStateSystem;
 import org.eclipse.linuxtools.tmf.core.statevalue.ITmfStateValue;
 import org.eclipse.linuxtools.tmf.stateflow.core.trace.CtfExecutionTrace;
@@ -37,67 +40,77 @@ import org.eclipse.swt.graphics.RGB;
  */
 public class StateFlowPresentationProvider extends TimeGraphPresentationProvider {
 
-    private enum State {
-        UNKNOWN     (new RGB(255, 255, 255)),
-        WAITING     (new RGB(200, 0, 0)),
-        RUNNING     (new RGB(0, 200, 0));
-
-        public final RGB rgb;
-
-        private State (RGB rgb) {
-            this.rgb = rgb;
-        }
+	private IStateSystemPresentationInfo presentationInfo=null;
+	private StateItem[]  stateItemTable = new StateItem[0];
+	private Map<ITmfStateValue,Integer>  stateValueToIndexMap = new HashMap<ITmfStateValue,Integer>();
+    
+    synchronized void setPresentationData( IStateSystemPresentationInfo presentationInfo ) {
+    	this.presentationInfo = presentationInfo;
+    	
+    	//recreate all data structures here
+    	IStatePresentationInfo[] allStates = presentationInfo.getAllStates();
+    	stateItemTable = new StateItem[allStates.length];
+    	stateValueToIndexMap.clear();
+    	
+    	for (int i=0;i<allStates.length;++i) {
+    		IStatePresentationInfo info = allStates[i];
+    		stateItemTable[i] = new StateItem(info.getStateColor(),info.getStateString());
+    		stateValueToIndexMap.put(info.getStateValue(),new Integer(i));
+    	}
     }
+    
 
     @Override
     public String getStateTypeName() {
-        return Messages.ExecutionFlowView_stateTypeName;
+        return Messages.StateFlowView_stateTypeName;
     }
 
     @Override
-    public StateItem[] getStateTable() {
-        StateItem[] stateTable = new StateItem[State.values().length];
-        for (int i = 0; i < stateTable.length; i++) {
-            State state = State.values()[i];
-            stateTable[i] = new StateItem(state.rgb, state.toString());
-        }
-        return stateTable;
+    synchronized public StateItem[] getStateTable() {
+    	return stateItemTable;
     }
 
     @Override
-    public int getStateTableIndex(ITimeEvent event) {
+    synchronized public int getStateTableIndex(ITimeEvent event) {
         if (event instanceof StateFlowEvent) {
-            int status = ((StateFlowEvent) event).getStatus();
-            if (status == StateValues.RUNNING) {
-                return State.RUNNING.ordinal();
-            } else if (status == StateValues.WAITING) {
-                return State.WAITING.ordinal();
-            }
+        	return ((StateFlowEvent)event).getStateIndex();           	
         }
-        return State.UNKNOWN.ordinal();
+        return 0; //unknown is always 0
     }
 
     @Override
-    public String getEventName(ITimeEvent event) {
+    synchronized public String getEventName(ITimeEvent event) {
         if (event instanceof StateFlowEvent) {
-            int status = ((StateFlowEvent) event).getStatus();
-            if (status == StateValues.RUNNING) {
-                return State.RUNNING.toString();
-            } else if (status == StateValues.WAITING) {
-                return State.WAITING.toString();
-            }
+        	int index = ((StateFlowEvent)event).getStateIndex();        	
+        	return stateItemTable[index].getStateString();        	
+//        	ITmfStateValue stateValue = ((StateFlowEvent)event).getStateValue();
+//        	if (presentationInfo != null) {
+//        		IStatePresentationInfo pi = presentationInfo.getPresentationForStateValue(stateValue);
+//        		if (pi != null) {
+//        			return pi.getStateString();
+//        		}
+//        	}        	
         }
-        return State.UNKNOWN.toString();
+        return "Unknown";
     }
 
     @Override
-    public Map<String, String> getEventHoverToolTipInfo(ITimeEvent event) {
+    synchronized public Map<String, String> getEventHoverToolTipInfo(ITimeEvent event) {
     	//
         if (event instanceof StateFlowEvent) {
+            //StateFlowEvent stateFlowEvent = (StateFlowEvent)event;
+            
+            //stateFlowEvent.get
         	StateFlowEntry entry = (StateFlowEntry) event.getEntry();
         	Map<String, String> retMap = new LinkedHashMap<String, String>();
-        	retMap.put("Package",entry.getContextInfo());
-        	retMap.put("Class.Method", entry.getName());
+        	//FIXME these are old hard coded values   	
+        	
+        	if (entry.getContextInfo() != null ) {
+        	    retMap.put("Context",entry.getContextInfo());
+        	}
+        	if (entry.getName() != null) {
+        	    retMap.put("Name", entry.getName());
+        	}
         	return retMap;
         }
         else {

@@ -41,5 +41,5 @@
     </plugins>
   </build>
 
- <groupId>org.eclipse.linuxtools.tmf.executionflow</groupId>
+ <groupId>org.eclipse.linuxtools.tmf.stateflow</groupId>
 </project>

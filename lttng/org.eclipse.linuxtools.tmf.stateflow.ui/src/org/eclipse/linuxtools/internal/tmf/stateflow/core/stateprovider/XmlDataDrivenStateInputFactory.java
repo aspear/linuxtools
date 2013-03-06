@@ -1,8 +1,10 @@
 package org.eclipse.linuxtools.internal.tmf.stateflow.core.stateprovider;
 
+import java.io.BufferedInputStream;
 import java.io.File;
-import java.util.Map;
-
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.linuxtools.tmf.core.TmfCommonConstants;
@@ -13,7 +15,7 @@ import org.eclipse.linuxtools.tmf.core.statesystem.ITmfStateSystem;
 import org.eclipse.linuxtools.tmf.core.statesystem.StateSystemManager;
 import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
 
-public class DataDrivenStateInputFactory implements IStateSystemFactory {
+public class XmlDataDrivenStateInputFactory implements IStateSystemFactory {
 	
 	public final static String STATE_SYSTEM_ID = "org.eclipse.linuxtools.internal.tmf.executiontrace.core.stateprovider.datadriven";
 	/**
@@ -21,7 +23,7 @@ public class DataDrivenStateInputFactory implements IStateSystemFactory {
      */
     public final static String HISTORY_TREE_FILE_NAME = "stateHistory.ht"; //$NON-NLS-1$
     
-    public DataDrivenStateInputFactory() {    	
+    public XmlDataDrivenStateInputFactory() {    	
     }
     
 	@Override
@@ -45,6 +47,10 @@ public class DataDrivenStateInputFactory implements IStateSystemFactory {
 	    }
 	    //the schema file exists!  that means we can create a state system for it.
 	    /* Set up the path to the history tree file we'll use */
+	    
+	    //build presentation from the XML.  might throw if the XML is bad.
+	    StateSystemPresentationInfo statePresentationInfo = buildStatePresentationInfo(stateSchemaXml);	       
+	    
         IResource resource = trace.getResource();
         String supplDirectory = null;
 
@@ -58,7 +64,7 @@ public class DataDrivenStateInputFactory implements IStateSystemFactory {
         final File htFile = new File(supplDirectory + File.separator + HISTORY_TREE_FILE_NAME);        
         
         // NOTE: I have no idea what id to use for the state input, so using system id        
-        final IStateChangeInput htInput = new DataDrivenStateInput(trace,trace.getEventType(),STATE_SYSTEM_ID);
+        final IStateChangeInput htInput = new DataDrivenStateInput(statePresentationInfo,trace,trace.getEventType(),STATE_SYSTEM_ID);
 
         ITmfStateSystem ss = StateSystemManager.loadStateHistory(htFile, htInput, false);
         return ss;	    
@@ -80,6 +86,15 @@ public class DataDrivenStateInputFactory implements IStateSystemFactory {
 		}
 		return new File(traceDirectory, trace.getName() + ".state-schema.xml");
 	}
-
-
+	
+	private StateSystemPresentationInfo buildStatePresentationInfo(File stateSchemaXml) 
+			throws TmfTraceException {				
+		InputStream xmlInputStream;
+		try {
+			xmlInputStream = new BufferedInputStream(new FileInputStream(stateSchemaXml));
+		} catch (FileNotFoundException e) {
+			throw new TmfTraceException(e.getMessage(),e); //this can't happen here anyway
+		}
+		return XmlStateSystemPresentationInfoBuilder.build(xmlInputStream);
+	}
 }

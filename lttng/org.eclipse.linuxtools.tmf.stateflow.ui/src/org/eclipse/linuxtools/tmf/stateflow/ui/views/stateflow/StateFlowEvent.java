@@ -12,6 +12,7 @@
 
 package org.eclipse.linuxtools.tmf.stateflow.ui.views.stateflow;
 
+import org.eclipse.linuxtools.tmf.core.statevalue.ITmfStateValue;
 import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.ITimeGraphEntry;
 import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.TimeEvent;
 
@@ -20,7 +21,7 @@ import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.TimeEvent;
  */
 public class StateFlowEvent extends TimeEvent {
 
-    private final int fStatus;
+    private final int stateIndex;
 
     /**
      * Constructor
@@ -34,18 +35,15 @@ public class StateFlowEvent extends TimeEvent {
      * @param status
      *            The status assigned to the event
      */
-    public StateFlowEvent(ITimeGraphEntry entry, long time, long duration,
-            int status) {
+    public StateFlowEvent(ITimeGraphEntry entry, long time, long duration, int stateIndex) {
         super(entry, time, duration);
-        fStatus = status;
+        this.stateIndex = stateIndex;
     }
 
     /**
-     * Get this event's status
-     *
-     * @return The integer matching this status
+     * Get this event's state value
      */
-    public int getStatus() {
-        return fStatus;
+    public int getStateIndex() {
+        return stateIndex;
     }
 }

@@ -1,54 +1,25 @@
 package org.eclipse.linuxtools.internal.tmf.stateflow.core.stateprovider;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-
 import org.eclipse.linuxtools.tmf.core.event.ITmfEvent;
 import org.eclipse.linuxtools.tmf.core.event.ITmfEventField;
-import org.eclipse.linuxtools.tmf.core.event.ITmfEventType;
-import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.StateItem;
+import org.eclipse.linuxtools.tmf.core.statesystem.IStatePresentationInfo;
+import org.eclipse.linuxtools.tmf.core.statesystem.IStateSystemContextHierarchyInfo;
+import org.eclipse.linuxtools.tmf.core.statesystem.IStateSystemPresentationInfo;
+import org.eclipse.linuxtools.tmf.core.statevalue.ITmfStateValue;
+import org.eclipse.linuxtools.tmf.core.statevalue.TmfStateValue;
 import org.eclipse.swt.graphics.RGB;
-import org.w3c.dom.Attr;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
 
 /*
- * <contextHierarchy>Data Center/Cluster/Host/VM</contextHierarchy>
-
-<stateDeclaration context="VM" parentInherits="false">
-	<state name="Unknown" rgb="0,0,0">
-		<value>0</value>
-		<value>1</value>
-	</state>
-	<state name="Powering Up" rgb="0,20,0">
-		<value>2</value>
-	</state>
-	<state name="Running" rgb="0,200,0">
-		<value>3</value>
-	</state>
-</stateDeclaration> 
-
-<stateChange context="VM" eventType="VmPowerEvent" eventFieldToExtractStateFrom="message" eventFieldToExtractStateFromRegex="blahblah(\d+)blahblah"/>
-<stateChange context="VM" eventType="VmRunningEvent" eventFieldToExtractStateFrom="message" eventFieldToExtractStateFromRegex="blahblah(\d+)blahblah"/>
+TODO refactor this class into a separate builder that creates it using the XML data so that this
+container can be reused for non XML driven versions
 
  */
-public class StateInfo {
-	
-	private static final String CONTEXT_HIERARCHY_ELEMENT = "contextHierarchy";
-	private static final String STATE_DECLARATION_ELEMENT = "stateDeclaration";		
-	
+public class StateSystemPresentationInfo implements IStateSystemPresentationInfo {
+			
 	/**
 	 * class to represent the logic to extract a value from an event field.  The 
 	 * value can be hard coded (in which case the event fields don't matter), or can come from a 
@@ -56,7 +27,7 @@ public class StateInfo {
 	 * @author aspear
 	 *
 	 */
-	private static class EventFieldValue {
+	static class EventFieldValue {
 		private final String fieldName;
 	    private final Pattern fieldRegexPattern;
 		private final String fixedValue;
@@ -124,13 +95,10 @@ public class StateInfo {
 		}		
 	}
 	
-	private static class StateChangeInfo {
-		private final String eventType;
+	static class StateChangeInfo {
 	    private final EventFieldValue stateValue;
 		
-		public StateChangeInfo(String eventType,EventFieldValue stateValue) {
-			this.eventType = eventType;
-		
+		public StateChangeInfo(final EventFieldValue stateValue) {
 			this.stateValue = stateValue;
 		}		
 	
@@ -139,239 +107,121 @@ public class StateInfo {
 		}
 	}
 	
-	private static class ContextChangeInfo {
-		private final String eventType;
-		private final EventFieldValue parentContextValue;
-		private final EventFieldValue thisContextValue;
+	static class ContextChangeInfo {
+		private final EventFieldValue[] hierarchyContextValues;
 		
-		public ContextChangeInfo(String eventType,EventFieldValue parentContextValue,EventFieldValue thisContextValue) {
-			this.eventType = eventType;
-			this.parentContextValue = parentContextValue;
-			this.thisContextValue = thisContextValue;
+		public ContextChangeInfo(final EventFieldValue[] hierarchyContextValues) {
+			this.hierarchyContextValues = hierarchyContextValues;
 		}		
 				
-		public String getParent( ITmfEvent event ) {
-			return parentContextValue.getValue(event);          
-		}
-		public String getContext( ITmfEvent event ) {
-			return thisContextValue.getValue(event);          
-		}
-	}
-	
-	
-	private Map<String,StateChangeInfo> eventTypeToStateChangeInfoMap = new HashMap<String,StateChangeInfo>();
-	private Map<String,ContextChangeInfo> eventTypeToContextChangeInfoMap = new HashMap<String,ContextChangeInfo>();
-	private Map<String,StateItem> stateValueToStateMap = new HashMap<String,StateItem>();
-	
-	private StateItem[] states = null;
-	
-	/**
-	 * parse XML input stream that contains a description of all states and rules to recreate state.
-	 * @param inputStream
-	 * @throws IOException
-	 */
-	public void parseInfoText(InputStream inputStream) throws IOException {
-		Map<String,StateChangeInfo> localEventTypeToStateChangeInfoMap = new HashMap<String,StateChangeInfo>();
-		 Map<String,ContextChangeInfo> localEventTypeToContextChangeInfoMap = new HashMap<String,ContextChangeInfo>();
-		
-		
-		DocumentBuilderFactory docBldrFactory;
-        DocumentBuilder docBldr;
-        Document configDoc;
-
-        docBldrFactory = DocumentBuilderFactory.newInstance();
-        try {
-            docBldr = docBldrFactory.newDocumentBuilder();
-        } catch (ParserConfigurationException e) {
-             throw new IOException(e);
-        }
-        
-        try {
-			configDoc = docBldr.parse(inputStream);
-		} catch (SAXException e) {
-			 throw new IOException(e);
-		}
-        
-        //NodeList hierarchyNodes = configDoc.getElementsByTagName(CONTEXT_HIERARCHY_ELEMENT);
-        //if ((hierarchyNodes == null) || (hierarchyNodes.getLength() > 1)) {
-        //   throw new IOException("There can be only one " + CONTEXT_HIERARCHY_ELEMENT);
-        //}        
-        //Element hierarchyNode = (Element) hierarchyNodes.item(0);
-        //Element nameElement = (Element) format.getElementsByTagName("Name").item(0);
-        //String contextHierarchy = hierarchyNode.getTextContent();
-       
-        parseStateDeclarations(configDoc);
-        
-        //<stateChange context="VM" eventType="VmPowerEvent" eventFieldToExtractStateFrom="message" eventFieldToExtractStateFromRegex="blahblah(\d+)blahblah"/>
-        
-        NodeList addContextNodes = configDoc.getElementsByTagName("addContext");        
-        for (int i = 0; i < addContextNodes.getLength(); ++i) {
-            Element addContextElement = (Element)addContextNodes.item(i);
-                                 
-            String eventType = addContextElement.getAttribute("eventType");            
-            EventFieldValue valueParentContext = parseFieldValue(addContextElement,"valueParentContext");
-            EventFieldValue valueCurrentContext = parseFieldValue(addContextElement,"valueCurrentContext");
-            localEventTypeToContextChangeInfoMap.put(eventType,  new ContextChangeInfo(eventType,valueParentContext,valueCurrentContext));
-        }
-        
-       /*<stateChange context="Method" 
-	             eventType="lttng_ust_java:function_entry_event">
-	             <valueParentContext field="int_tid" fieldRegex="(.*)"/>
-	             <valueEventContext field="string_method" fieldRegex="(.*)"/>
-	             <valueState value="1"/>
-		</stateChange> */
-        NodeList stateChangeNodes = configDoc.getElementsByTagName("stateChange");        
-        for (int i = 0; i < stateChangeNodes.getLength(); ++i) {
-            Element stateChangeElement = (Element)stateChangeNodes.item(i);
-                       
-            String eventType = stateChangeElement.getAttribute("eventType");            
-            EventFieldValue valueState = parseFieldValue(stateChangeElement,"valueState");          
-            localEventTypeToStateChangeInfoMap.put(eventType,new StateChangeInfo(eventType,valueState));
-        }
-        
-        // update the members with the new maps
-        this.eventTypeToStateChangeInfoMap = localEventTypeToStateChangeInfoMap;
-        this.eventTypeToContextChangeInfoMap = localEventTypeToContextChangeInfoMap;	
-	}
-	
-	private void parseStateDeclarations(Document configDoc) {
-		
-		Map<String,StateItem> localStateValueToStateMap = new HashMap<String,StateItem>();
-		List<StateItem> stateItemList = new ArrayList<StateItem>();
-		 /*
-        <stateDeclaration context="VM" parentInherits="false">
-    	<state name="Unknown" rgb="0,0,0">
-    		<value>0</value>
-    		<value>1</value>
-    	</state>
-    	<state name="Powering Up" rgb="0,20,0">
-    		<value>2</value>
-    	</state>
-    	<state name="Running" rgb="0,200,0">
-    		<value>3</value>
-    	</state>
-    	</stateDeclaration>
-         */ 
-        NodeList stateDeclarationNodes = configDoc.getElementsByTagName(STATE_DECLARATION_ELEMENT);        
-        for (int i = 0; i < stateDeclarationNodes.getLength(); ++i) {
-            Element stateDeclaration = (Element)stateDeclarationNodes.item(i);
-            String context = stateDeclaration.getAttribute("context");
-            NodeList stateNodes = stateDeclaration.getElementsByTagName("state");
-            for (int s=0;s<stateNodes.getLength();++s) {
-            	Element stateElem = (Element)stateNodes.item(s);
-            	String stateName = stateElem.getAttribute("name");
-            	RGB rgb = null;
-            	String[] rgbString = stateElem.getAttribute("rgb").split(",");
-            	if (rgbString.length == 3) {
-            		//TODO error checking
-            		rgb = new RGB(Integer.parseInt(rgbString[0]),Integer.parseInt(rgbString[1]),Integer.parseInt(rgbString[2]));
-            	}
-            	StateItem stateItem = new StateItem(rgb,stateName);
-            	stateItemList.add(stateItem);
-            	
-            	//extract all possible values and add them to the map to this stateItem
-            	 NodeList valueNodes = stateElem.getElementsByTagName("value");
-                 for (int v=0;v<valueNodes.getLength();++v) {
-                 	Element valueElem = (Element)stateNodes.item(v);
-                 	String value = valueElem.getTextContent();
-                 	if (value !=  null) {
-                 		localStateValueToStateMap.put(value.trim(), stateItem);
-                 	}                 	
-                 }           	
-            }
-            
-        }
-        this.stateValueToStateMap = localStateValueToStateMap;
-        this.states = stateItemList.toArray(new StateItem[0]);
-	}
-	
-	/*
-	 *   <valueEventContext field="string_method" fieldRegex="(.*)"/>
-	             <valueState value="1"/>
-	 */
-	private EventFieldValue parseFieldValue( Element parentElement, String childElementName ) {
-		NodeList valueContextNodes = parentElement.getElementsByTagName(childElementName);     
-		if (valueContextNodes != null && valueContextNodes.getLength() > 0) {
-			Element eventFieldValueElement = (Element)valueContextNodes.item(0);
-			
-			//first check to see if we have a constant value defined.
-			Attr valueNode = eventFieldValueElement.getAttributeNode("value");
-			if (valueNode != null) {
-				String value = valueNode.getNodeValue();
-				return new EventFieldValue(value);
-			}
-				
-			Attr fieldNode = eventFieldValueElement.getAttributeNode("field");
-			if (fieldNode != null) {
-				//yes there is a field value, so we are going to use it.  there is OPTIONALLY a regex for it.
-				String fieldName = fieldNode.getNodeValue();
-				String fieldRegex = null;
-				Attr fieldRegexNode = eventFieldValueElement.getAttributeNode("field");
-				if (fieldRegexNode != null) {
-					fieldRegex = fieldRegexNode.getNodeValue();
+		public String[] getContext( ITmfEvent event ) {
+			// if this even gets called then that means that this event has some context context, so allocate a new context			
+			String[] context = new String[hierarchyContextValues.length];
+			for (int c=0;c<hierarchyContextValues.length;++c) {
+				EventFieldValue contextValue = hierarchyContextValues[c];
+				if (contextValue != null) {
+					context[c] = hierarchyContextValues[c].getValue(event);
+				} else {
+					context[c] = null;
 				}
-				return new EventFieldValue(fieldName,fieldRegex);
 			}
-			// TODO logging
+			return context;
 		}
-        return null;
 	}
+	
+	static class StatePresentationInfo implements IStatePresentationInfo {
+
+		private RGB 			stateColor;
+		private String 			stateString;
+		private ITmfStateValue 	stateValue;
+		
+		public StatePresentationInfo(String stateString, RGB stateColor, int stateIndex) {
+			this.stateString = stateString;
+			this.stateColor = stateColor;
+			this.stateValue = TmfStateValue.newValueInt(stateIndex);
+		}
+		
+		@Override
+		public String getStateString() {
+			return stateString;
+		}
+
+		@Override
+		public RGB getStateColor() {
+			return stateColor;
+		}		
+		
+		@Override
+		public ITmfStateValue getStateValue() {
+	    	return stateValue;
+		}
+	}
+		
+	private Map<String,StateChangeInfo> 		eventTypeToStateChangeInfoMap;
+	private Map<String,ContextChangeInfo> 		eventTypeToContextChangeInfoMap;
+	private Map<String,IStatePresentationInfo>	stateStringToStateMap;
+	private IStatePresentationInfo[] 			states;	
+	private IStateSystemContextHierarchyInfo[] 	contextHierarchy;
+		
+	public StateSystemPresentationInfo(
+			Map<String,StateChangeInfo> 		eventTypeToStateChangeInfoMap,
+			Map<String,ContextChangeInfo> 		eventTypeToContextChangeInfoMap,
+			Map<String,IStatePresentationInfo>	stateStringToStateMap,
+			IStatePresentationInfo[] 			states,
+			IStateSystemContextHierarchyInfo[]  contextHierarchy) {
+		
+		this.eventTypeToStateChangeInfoMap = eventTypeToStateChangeInfoMap;
+		this.eventTypeToContextChangeInfoMap = eventTypeToContextChangeInfoMap;
+		this.stateStringToStateMap = stateStringToStateMap;
+		this.states = states;	
+		this.contextHierarchy = contextHierarchy;		
+	}	
 	
 	/**
 	 * get all states supported for this context
 	 * @return
 	 */
-	public final StateItem[] getAllStates() {
-		return states;
-	}
+	//public final IStatePresentationInfo[] getAllStates() {
+	//	return states;
+	//}
 	
-	/** iff the given event contains context changes a string array is returned
-	 * that contains 0 the parent, 1, the current context.  If the event does not
-	 * have context info then null is returned.  It is possible to get one or the 
-	 * other of the parent and current context as null values, but not both
-	 * @param event
-	 * @return
-	 */
-	public String[] getContext( ITmfEvent event ) {
-		
-		ITmfEventType eventType = event.getType();
-		if (eventType == null) {
-			return null;
-		}
-		
-		String eventTypeName = eventType.getName();
-		
+	@Override
+	public String[] getContext( String eventTypeName, ITmfEvent event ) {
+						
 		// first check to see if there is any change in the contexts for this event type
 		ContextChangeInfo contextChangeInfo = eventTypeToContextChangeInfoMap.get(eventTypeName);
-		if (contextChangeInfo != null) {
-			String parent = contextChangeInfo.getParent(event);
-			String current = contextChangeInfo.getContext(event);
-			if (parent != null || current != null) {
-				return new String[]{parent,current};
-			}
+		if (contextChangeInfo != null) {			
+			return contextChangeInfo.getContext(event);
 		}		
 		return null;
 	}
 	
-	/**
-	 * get a new state for the given event if there is one
-	 * @param ev
-	 * @return
-	 */
-	public StateItem getNewState( ITmfEvent event ) {
-
-		ITmfEventType eventType = event.getType();
-		if (eventType == null) {
-			return null;
-		}		
-		String eventTypeName = eventType.getName();		
+	@Override
+	public IStatePresentationInfo getNewState( String eventTypeName, ITmfEvent event ) {
+			
 		StateChangeInfo stateChangeInfo = eventTypeToStateChangeInfoMap.get(eventTypeName);
 		if (stateChangeInfo != null) {
+			// get the string for the new state
 			String newStateString = stateChangeInfo.getState(event);
 			if (newStateString != null) {
-				return stateValueToStateMap.get(newStateString);
+				return stateStringToStateMap.get(newStateString);
 			}
 		}	
 		return null;
+	}
+	
+	@Override
+	public IStatePresentationInfo getPresentationForStateValue(ITmfStateValue stateValue) {
+		return stateStringToStateMap.get(stateValue.toString());
+	}
+
+	@Override
+	public IStateSystemContextHierarchyInfo[] getContextHierarchy() {
+		return contextHierarchy;
+	}
+
+	@Override
+	public IStatePresentationInfo[] getAllStates() {
+		return states;
 	}
 }

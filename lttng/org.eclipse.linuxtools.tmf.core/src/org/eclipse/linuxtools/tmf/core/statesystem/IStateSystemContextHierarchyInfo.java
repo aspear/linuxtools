@@ -12,8 +12,20 @@ import java.util.List;
  */
 public interface IStateSystemContextHierarchyInfo {
 
-    public String getContextIdInStateSystem();
-    public String getContextDisplayName();
-    public String getStateSystemAttributeName();
-    List<IStateSystemContextHierarchyInfo>  getChildContexts();
+    /**
+     * @return the string id that corresponds to this context
+     */
+    public String getContextId();
+
+    /**
+     * the id of the parent context.  If this is null, there is no parent and it is the root context (there
+     * should only be one for a given trace)
+     * @return may be null only for the root node, otherwise non null parent node id
+     */
+    public String getParentId();
+
+    /**
+     * @return true if this level in the hierarchy has state, otherwise false.
+     */
+    public boolean hasState();
 }

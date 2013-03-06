@@ -17,6 +17,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.eclipse.linuxtools.internal.tmf.stateflow.views.common.EventIterator;
+import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
 import org.eclipse.linuxtools.tmf.stateflow.core.trace.CtfExecutionTrace;
 import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.ITimeEvent;
 import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.ITimeGraphEntry;
@@ -25,8 +26,8 @@ import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.ITimeGraphEntry;
  * An entry in the Control Flow view
  */
 public class StateFlowEntry implements ITimeGraphEntry {
-    private final int fMethodQuark;
-    private final CtfExecutionTrace fTrace;
+    private final int fContextQuark;
+    private final ITmfTrace fTrace;
     private StateFlowEntry fParent = null;
     private final ArrayList<StateFlowEntry> fChildren = new ArrayList<StateFlowEntry>();
     private final String fName;
@@ -42,11 +43,11 @@ public class StateFlowEntry implements ITimeGraphEntry {
     /**
      * Constructor
      *
-     * @param threadQuark
-     *            The attribute quark matching the thread
+     * @param methodQuark
+     *            The attribute quark matching the state entry
      * @param trace
      *            The trace on which we are working
-     * @param execName
+     * @param name
      *            The exec_name of this entry
      * @param threadId
      *            The TID of the thread
@@ -60,10 +61,10 @@ public class StateFlowEntry implements ITimeGraphEntry {
      * @param endTime
      *            The end time of this process
      */
-    public StateFlowEntry(int methodQuark, CtfExecutionTrace trace, String execName, String contextInfo, int parentQuark, long birthTime, long startTime, long endTime) {
-        fMethodQuark = methodQuark;
+    public StateFlowEntry(int contextQuark, ITmfTrace trace, String name, String contextInfo, int parentQuark, long birthTime, long startTime, long endTime) {
+        fContextQuark = contextQuark;
         fTrace = trace;
-        fName = execName;
+        fName = name;
         fContextInfo = contextInfo;
         //fThreadId = threadId;
         fParentQuark = parentQuark;
@@ -127,7 +128,7 @@ public class StateFlowEntry implements ITimeGraphEntry {
      * @return The quark
      */
     public int getNodeQuark() {
-        return fMethodQuark;
+        return fContextQuark;
     }
 
     /**
@@ -135,7 +136,7 @@ public class StateFlowEntry implements ITimeGraphEntry {
      *
      * @return The trace
      */
-    public CtfExecutionTrace getTrace() {
+    public ITmfTrace getTrace() {
         return fTrace;
     }
 
@@ -211,5 +212,15 @@ public class StateFlowEntry implements ITimeGraphEntry {
     public void addChild(StateFlowEntry child) {
         child.fParent = this;
         fChildren.add(child);
+    }
+    
+    @Override
+    public String toString() {
+    	StringBuilder result = new StringBuilder(100);
+    	result.append("[name='").append(fName).append("' ")
+    	      .append(" quark=").append(fContextQuark)
+    	      .append(" parentQuark=").append(fParentQuark)
+    		  .append("]");
+    	return result.toString();
     }
 }
