@@ -11,7 +11,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.eclipse.linuxtools.internal.tmf.stateflow.core.stateprovider.StateSystemPresentationInfo.ContextChangeInfo;
+import org.eclipse.linuxtools.internal.tmf.stateflow.core.stateprovider.StateSystemPresentationInfo.ContextInfo;
 import org.eclipse.linuxtools.internal.tmf.stateflow.core.stateprovider.StateSystemPresentationInfo.EventFieldValue;
 import org.eclipse.linuxtools.internal.tmf.stateflow.core.stateprovider.StateSystemPresentationInfo.StateChangeInfo;
 import org.eclipse.linuxtools.internal.tmf.stateflow.core.stateprovider.StateSystemPresentationInfo.StatePresentationInfo;
@@ -29,12 +29,17 @@ public class XmlStateSystemPresentationInfoBuilder {
 	
 	public static final String SCHEMA_XML_FILE_EXTENSION 	= ".state-schema.xml";	
 	private static final String DEFINE_CONTEXT_ELEMENT 		= "defineContext";
-	private static final String SET_CONTEXT_ELEMENT 		= "setContext";
+	private static final String SWITCH_CONTEXT_ELEMENT 		= "switchContext";
+	private static final String PUSH_CONTEXT_ELEMENT 		= "pushContext";
+	private static final String POP_CONTEXT_ELEMENT 		= "popContext";
+	private static final String STATE_CHANGE_ELEMENT		= "stateChange";
 	private static final String FIELD_ATTRIBUTE 			= "field";	
 	private static final String STATE_DECLARATION_ELEMENT 	= "stateDeclaration";		
 	
 	private Map<String,StateChangeInfo> 		eventTypeToStateChangeInfoMap;
-	private Map<String,ContextChangeInfo> 		eventTypeToContextChangeInfoMap;
+	private Map<String,ContextInfo> 			eventTypeToSwitchContextMap;
+	private Map<String,ContextInfo> 			eventTypeToPushContextMap;
+	private Map<String,ContextInfo> 			eventTypeToPopContextMap;
 	private Map<String,IStatePresentationInfo>	stateStringToStateMap;
 	private IStatePresentationInfo[] 			states;
 	private IStateSystemContextHierarchyInfo[] 	contextHierarchy;
@@ -62,8 +67,10 @@ public class XmlStateSystemPresentationInfoBuilder {
 		} 			
 		
 		StateSystemPresentationInfo stateSystemPresentationInfo = new StateSystemPresentationInfo(
-				eventTypeToStateChangeInfoMap,
-				eventTypeToContextChangeInfoMap,
+				eventTypeToSwitchContextMap,
+				eventTypeToPushContextMap,
+				eventTypeToPopContextMap,
+				eventTypeToStateChangeInfoMap,				
 				stateStringToStateMap,
 				states,
 				contextHierarchy);
@@ -124,7 +131,9 @@ public class XmlStateSystemPresentationInfoBuilder {
 	 */
 	public void parseInfoXml(InputStream inputStream) throws IOException {
 		eventTypeToStateChangeInfoMap = new HashMap<String,StateChangeInfo>();
-		eventTypeToContextChangeInfoMap = new HashMap<String,ContextChangeInfo>();
+		eventTypeToSwitchContextMap = new HashMap<String,ContextInfo>();
+		eventTypeToPushContextMap = new HashMap<String,ContextInfo>();
+		eventTypeToPopContextMap = new HashMap<String,ContextInfo>();	
 				
 		DocumentBuilderFactory docBldrFactory;
         DocumentBuilder docBldr;
@@ -159,7 +168,28 @@ public class XmlStateSystemPresentationInfoBuilder {
         	<valueContext id="VM"         field="VM"         fieldRegex="(.*)"/>
 		</setContext>
  		*/	
-        NodeList addContextNodes = configDoc.getElementsByTagName(SET_CONTEXT_ELEMENT);        
+        parseContextElements(configDoc,SWITCH_CONTEXT_ELEMENT,eventTypeToSwitchContextMap);
+        parseContextElements(configDoc,PUSH_CONTEXT_ELEMENT,eventTypeToPushContextMap);
+        parseContextElements(configDoc,POP_CONTEXT_ELEMENT,eventTypeToPopContextMap);
+	
+       /*<stateChange eventType="com.vmware.vim25.VmStartingEvent" contextId="VM">
+	       <valueState value="Starting"/>
+		</stateChange>*/
+        NodeList stateChangeNodes = configDoc.getElementsByTagName(STATE_CHANGE_ELEMENT);        
+        for (int i = 0; i < stateChangeNodes.getLength(); ++i) {
+            Element stateChangeElement = (Element)stateChangeNodes.item(i);
+            List<Element> valueStateElements = getChildElements(stateChangeElement,"valueState");
+            if (valueStateElements.size() != 1) {
+            	throw new IllegalArgumentException("stateChange must one and only one valueState children");            
+            }
+            String eventType = stateChangeElement.getAttribute("eventType");            
+            EventFieldValue valueState = parseFieldValue(valueStateElements.get(0));          
+            eventTypeToStateChangeInfoMap.put(eventType,new StateSystemPresentationInfo.StateChangeInfo(valueState));
+        }        
+	}
+	
+	private void parseContextElements( Document configDoc, String elementName, Map<String,ContextInfo> nameToContextInfoMap) {
+		NodeList addContextNodes = configDoc.getElementsByTagName(elementName);        
         for (int i = 0; i < addContextNodes.getLength(); ++i) {
             Element setContextElement = (Element)addContextNodes.item(i);
             String eventType = setContextElement.getAttribute("eventType");            
@@ -176,23 +206,8 @@ public class XmlStateSystemPresentationInfoBuilder {
 		           	 }             	  	  
                 } 
             }                                                
-            eventTypeToContextChangeInfoMap.put(eventType,  new StateSystemPresentationInfo.ContextChangeInfo(hierarchyContextValues));
+            nameToContextInfoMap.put(eventType,  new StateSystemPresentationInfo.ContextInfo(hierarchyContextValues));
         }
-        
-       /*<stateChange eventType="com.vmware.vim25.VmStartingEvent" contextId="VM">
-	       <valueState value="Starting"/>
-		</stateChange>*/
-        NodeList stateChangeNodes = configDoc.getElementsByTagName("stateChange");        
-        for (int i = 0; i < stateChangeNodes.getLength(); ++i) {
-            Element stateChangeElement = (Element)stateChangeNodes.item(i);
-            List<Element> valueStateElements = getChildElements(stateChangeElement,"valueState");
-            if (valueStateElements.size() != 1) {
-            	throw new IllegalArgumentException("stateChange must one and only one valueState children");            
-            }
-            String eventType = stateChangeElement.getAttribute("eventType");            
-            EventFieldValue valueState = parseFieldValue(valueStateElements.get(0));          
-            eventTypeToStateChangeInfoMap.put(eventType,new StateSystemPresentationInfo.StateChangeInfo(valueState));
-        }        
 	}
 	
 	private void parseStateDeclarations(Document configDoc) {

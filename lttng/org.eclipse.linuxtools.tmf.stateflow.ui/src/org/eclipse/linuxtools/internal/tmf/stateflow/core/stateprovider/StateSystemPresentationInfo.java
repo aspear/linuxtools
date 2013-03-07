@@ -107,10 +107,10 @@ public class StateSystemPresentationInfo implements IStateSystemPresentationInfo
 		}
 	}
 	
-	static class ContextChangeInfo {
+	static class ContextInfo {
 		private final EventFieldValue[] hierarchyContextValues;
 		
-		public ContextChangeInfo(final EventFieldValue[] hierarchyContextValues) {
+		public ContextInfo(final EventFieldValue[] hierarchyContextValues) {
 			this.hierarchyContextValues = hierarchyContextValues;
 		}		
 				
@@ -161,21 +161,30 @@ public class StateSystemPresentationInfo implements IStateSystemPresentationInfo
 		}
 	}
 		
+	
+	private Map<String,ContextInfo> 			eventTypeToSwitchContextMap;
+	private Map<String,ContextInfo> 			eventTypeToPushContextMap;
+	private Map<String,ContextInfo> 			eventTypeToPopContextMap;
+	
 	private Map<String,StateChangeInfo> 		eventTypeToStateChangeInfoMap;
-	private Map<String,ContextChangeInfo> 		eventTypeToContextChangeInfoMap;
 	private Map<String,IStatePresentationInfo>	stateStringToStateMap;
 	private IStatePresentationInfo[] 			states;	
 	private IStateSystemContextHierarchyInfo[] 	contextHierarchy;
 		
 	public StateSystemPresentationInfo(
+			
+			Map<String,ContextInfo> 			eventTypeToSwitchContextMap,
+			Map<String,ContextInfo> 			eventTypeToPushContextMap,
+			Map<String,ContextInfo> 			eventTypeToPopContextMap,
 			Map<String,StateChangeInfo> 		eventTypeToStateChangeInfoMap,
-			Map<String,ContextChangeInfo> 		eventTypeToContextChangeInfoMap,
 			Map<String,IStatePresentationInfo>	stateStringToStateMap,
 			IStatePresentationInfo[] 			states,
 			IStateSystemContextHierarchyInfo[]  contextHierarchy) {
 		
+		this.eventTypeToSwitchContextMap = eventTypeToSwitchContextMap;
+		this.eventTypeToPushContextMap   = eventTypeToPushContextMap;
+		this.eventTypeToPopContextMap    = eventTypeToPopContextMap;		
 		this.eventTypeToStateChangeInfoMap = eventTypeToStateChangeInfoMap;
-		this.eventTypeToContextChangeInfoMap = eventTypeToContextChangeInfoMap;
 		this.stateStringToStateMap = stateStringToStateMap;
 		this.states = states;	
 		this.contextHierarchy = contextHierarchy;		
@@ -189,31 +198,7 @@ public class StateSystemPresentationInfo implements IStateSystemPresentationInfo
 	//	return states;
 	//}
 	
-	@Override
-	public String[] getContext( String eventTypeName, ITmfEvent event ) {
-						
-		// first check to see if there is any change in the contexts for this event type
-		ContextChangeInfo contextChangeInfo = eventTypeToContextChangeInfoMap.get(eventTypeName);
-		if (contextChangeInfo != null) {			
-			return contextChangeInfo.getContext(event);
-		}		
-		return null;
-	}
-	
-	@Override
-	public IStatePresentationInfo getNewState( String eventTypeName, ITmfEvent event ) {
-			
-		StateChangeInfo stateChangeInfo = eventTypeToStateChangeInfoMap.get(eventTypeName);
-		if (stateChangeInfo != null) {
-			// get the string for the new state
-			String newStateString = stateChangeInfo.getState(event);
-			if (newStateString != null) {
-				return stateStringToStateMap.get(newStateString);
-			}
-		}	
-		return null;
-	}
-	
+		
 	@Override
 	public IStatePresentationInfo getPresentationForStateValue(ITmfStateValue stateValue) {
 		return stateStringToStateMap.get(stateValue.toString());
@@ -228,4 +213,45 @@ public class StateSystemPresentationInfo implements IStateSystemPresentationInfo
 	public IStatePresentationInfo[] getAllStates() {
 		return states;
 	}
+
+	@Override
+	public String[] getSwitchContext( String eventTypeName, ITmfEvent event ) {						
+		ContextInfo contextChangeInfo = eventTypeToSwitchContextMap.get(eventTypeName);
+		if (contextChangeInfo != null) {			
+			return contextChangeInfo.getContext(event);
+		}
+		return null;
+	}
+	@Override
+	public String[] getPushContext(String eventTypeName, ITmfEvent event) {
+		ContextInfo contextChangeInfo = eventTypeToPushContextMap.get(eventTypeName);
+		if (contextChangeInfo != null) {			
+			return contextChangeInfo.getContext(event);
+		}
+		return null;
+	}
+
+	@Override
+	public String[] getPopContext(String eventTypeName, ITmfEvent event) {
+		ContextInfo contextChangeInfo = eventTypeToPopContextMap.get(eventTypeName);
+		if (contextChangeInfo != null) {			
+			return contextChangeInfo.getContext(event);
+		}		
+		return null;
+	}
+	
+	@Override
+	public IStatePresentationInfo getNewState( String eventTypeName, ITmfEvent event ) {			
+		StateChangeInfo stateChangeInfo = eventTypeToStateChangeInfoMap.get(eventTypeName);
+		if (stateChangeInfo != null) {
+			// get the string for the new state
+			String newStateString = stateChangeInfo.getState(event);
+			if (newStateString != null) {
+				return stateStringToStateMap.get(newStateString);
+			}
+		}	
+		return null;
+	}
+	
+	
 }

@@ -12,6 +12,11 @@
 
 package org.eclipse.linuxtools.internal.tmf.stateflow.core.stateprovider;
 
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Stack;
+
 import org.eclipse.linuxtools.internal.tmf.stateflow.core.Attributes;
 import org.eclipse.linuxtools.tmf.core.event.ITmfEvent;
 import org.eclipse.linuxtools.tmf.core.event.ITmfEventField;
@@ -33,12 +38,117 @@ import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
  *
  */
 public class DataDrivenStateInput extends AbstractStateChangeInput {
-			
-	private int currentContextQuark = -1;
-	private String[] lastContextIds;
-	private int rootQuark = -1;
-	//private StateItem[] possibleStates=null;
 	
+	 
+    
+	private static class ContextStack {
+		/**
+	     * copy from the source to the destination any values that are not null.  
+	     * @param source
+	     * @param dest
+	     * @param startingLevel
+	     */
+	    public static void copyContext( final String[] source, final String[] dest, int startingLevel ) {
+	    	for (int i=startingLevel;i<source.length;++i) {
+	    		if (source[i] != null) {    			
+	    			dest[i] = source[i];
+	    		}
+	    	}
+	    }
+	    
+		final String[] contextId;
+		final int contextLevel;
+		
+		private LinkedHashMap<String,ContextStack> 	contextToChildStackMap = null;
+		private Stack<String[]> 			 		stack = null;
+		
+		public ContextStack(final String[] contextId, int contextLevel) {
+			this.contextId = contextId;
+			this.contextLevel = contextLevel;
+		}
+		
+		public String[] getId() {
+			return contextId;
+		}
+		
+		public int getContextLevel() {
+			return contextLevel;
+		}
+			
+		public synchronized ContextStack getChildContextStack( final String childContext, boolean createIfNotExisting ) {
+			
+			if (contextToChildStackMap == null && createIfNotExisting) {
+				contextToChildStackMap = new LinkedHashMap<String,ContextStack>();
+			}
+			
+			if (contextToChildStackMap != null) {
+				ContextStack child = contextToChildStackMap.get(childContext);
+				if (child == null && createIfNotExisting) {
+					final String[] childId = contextId.clone();
+					childId[contextLevel+1] = childContext;
+					child = new ContextStack(childId,contextLevel+1);
+					contextToChildStackMap.put(childContext,child);					
+				}
+				return child;
+			} else {
+				return null;
+			}
+		}
+		
+		/**
+		 * push the CURRENT context id value on the stack and then change the current value
+		 * considering the given newContextIds
+		 * @param newContextIds
+		 */
+		public synchronized void push(final String[] newContextIds) {
+			getStack().push(contextId);
+			copyContext(newContextIds,contextId,this.contextLevel);
+		}
+		
+		/**
+		 * push the CURRENT context id value on the stack and then change the current value
+		 * considering the given newContextIds
+		 * @param newContextIds
+		 */
+		public synchronized void pop() {
+			String[] ids = getStack().pop();
+			copyContext(ids,contextId,this.contextLevel);
+		}
+			
+		/**
+		 * access to the stack for this instance in the hierarchy.  Note that this 
+		 * method does lazy creation of the stack object
+		 * @return
+		 */
+		public synchronized Stack<String[]>  getStack() {
+			if (stack == null) {
+				stack = new Stack<String[]>();
+			}				
+			return stack;			
+		}
+		
+		void dispose() {
+			if (contextToChildStackMap != null) {
+				for (ContextStack child : contextToChildStackMap.values()) {
+					child.dispose();
+				}				
+				contextToChildStackMap.clear();
+			}
+			if (stack != null) {
+				stack.clear();
+			}
+		}
+	}
+	
+	//************************************************************************
+	
+	private int currentContextQuark = -1;
+	//private String[] currentContextIds;
+	private ContextStack currentContextStack=null;
+	private int rootQuark = -1;
+	private ContextStack rootContextStack;
+	
+	//************************************************************************
 
     public DataDrivenStateInput(StateSystemPresentationInfo statePresentationInfo, ITmfTrace trace,Class<? extends ITmfEvent> eventType, String id) {
         super(trace, eventType, id);
@@ -46,7 +156,9 @@ public class DataDrivenStateInput extends AbstractStateChangeInput {
         this.statePresentationInfo = statePresentationInfo;
         
         // the last contextids are sized for the number of contexts we have in the hierarchy
-    	lastContextIds = new String[statePresentationInfo.getContextHierarchy().length];       
+    	//currentContextIds = new String[statePresentationInfo.getContextHierarchy().length];
+    	
+    	rootContextStack = new ContextStack(new String[statePresentationInfo.getContextHierarchy().length],0);
     }
 
     @Override
@@ -61,6 +173,25 @@ public class DataDrivenStateInput extends AbstractStateChangeInput {
     	// add the root level context nodes to the tree
     	IStateSystemContextHierarchyInfo[] hierarchy = statePresentationInfo.getContextHierarchy();    	
     	rootQuark = ssb.getQuarkAbsoluteAndAdd(hierarchy[0].getContextId());    	   	
+    }
+     
+    /** fill in any missing context ids using the lastContextIds value.   */
+    private void completeNewContext( final String[] contextIds ) {
+    	final String[] currentContextIds = currentContextStack.getId();
+    	for (int i=0;i<contextIds.length;++i) {
+    		if (contextIds[i] == null) {    			
+    			contextIds[i] = currentContextIds[i];
+    		} 
+    	}
+    }
+    
+    private ContextStack getContextStack( final String[] contextIds ) {
+    	ContextStack returnValue = rootContextStack.getChildContextStack(contextIds[0],true);    	
+    	for (int i=1;i<contextIds.length-1;++i) {
+    		ContextStack child = returnValue.getChildContextStack(contextIds[i], true);
+    		returnValue = child;
+    	}
+    	return returnValue;
     }
 
     @Override
@@ -81,18 +212,33 @@ public class DataDrivenStateInput extends AbstractStateChangeInput {
 		String eventTypeName = eventType.getName();	    	
         	    	
         try {          	       	
-            	// check to see if there are context changes that can be extracted from this event
-            	String[] contextIds = statePresentationInfo.getContext(eventTypeName,event);
+            	// check to see if there is a context switch in this event
+            	final String[] contextIds = statePresentationInfo.getSwitchContext(eventTypeName,event);
             	if (contextIds != null) {
-            		// we do have a context change with this event, update the member that tracks the current context
-            		// accordingly
-            		for (int c=0;c<lastContextIds.length;++c) {
-            			if (contextIds[c] != null) {
-            				lastContextIds[c] = contextIds[c];
-            			}
-            		}
-            		currentContextQuark = ss.getQuarkRelativeAndAdd(rootQuark, lastContextIds);
+            		
+            		// there is, some of the values may be null, which means to get the values for that from
+            		// the current context
+            		completeNewContext(contextIds);
+            		
+            		// switch the lastContextStack to be the value indicated by this context.            		
+            		currentContextStack = getContextStack(contextIds);
+            		
+            		currentContextQuark = ss.getQuarkRelativeAndAdd(rootQuark, currentContextStack.getId());
             	}
+            	
+            	// the context may or may not have been switched by the code above.  Lets check to see if there
+            	// are any context pushes in this event.  That means to take the 
+            	final String[] pushedContextIds = statePresentationInfo.getPushContext(eventTypeName,event);
+            	if (pushedContextIds != null) {
+            		currentContextStack.push(pushedContextIds);
+            		currentContextQuark = ss.getQuarkRelativeAndAdd(rootQuark, currentContextStack.getId());
+            	}    
+            	
+            	final String[] poppedContextIds = statePresentationInfo.getPopContext(eventTypeName,event);
+            	if (pushedContextIds != null) {
+            		currentContextStack.pop();
+            		currentContextQuark = ss.getQuarkRelativeAndAdd(rootQuark, currentContextStack.getId());
+            	}   
             	
             	// TODO the state below could possibly be for multiple or a single level in the hierarchy
             	// we need to figure out an efficient way to determine what could possibly be multiple different
@@ -120,8 +266,7 @@ public class DataDrivenStateInput extends AbstractStateChangeInput {
 	            	}           
             	}
      
-        } catch (Exception e) {
-           
+        } catch (Exception e) {           
             e.printStackTrace();
         }
     }   

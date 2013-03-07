@@ -592,7 +592,7 @@ public class StateFlowView extends TmfView {
 			}
 
 			// FIXME this does not work at all
-			if (trace instanceof CtfExecutionTrace) {
+			/*if (trace instanceof CtfExecutionTrace) {
 				System.err.println("FIXME synchToTime is broken");
 				CtfExecutionTrace ctfKernelTrace = (CtfExecutionTrace) trace;
 				ITmfStateSystem ssq = ctfKernelTrace.getStateSystem(CtfExecutionTrace.STATE_ID);
@@ -622,11 +622,11 @@ public class StateFlowView extends TmfView {
 						} catch (StateValueTypeException e) {
 							e.printStackTrace();
 						} catch (StateSystemDisposedException e) {
-							/* Ignored */
+							// Ignored 
 						}
 					}
 				}
-			}
+			}	*/		
 		}
 		final String finalSelectedObjectName = selectedObjectName;
 
@@ -1056,12 +1056,12 @@ public class StateFlowView extends TmfView {
 			if (monitor.isCanceled()) {
 				return;
 			}
-			if (aTrace instanceof CtfExecutionTrace) {
-				CtfExecutionTrace ctfExecutionTrace = (CtfExecutionTrace) aTrace;
-				buildEventListForCtfExecutionTrace(ctfExecutionTrace, monitor, rootList);
-			} else {
+			//if (aTrace instanceof CtfExecutionTrace) {
+			//	CtfExecutionTrace ctfExecutionTrace = (CtfExecutionTrace) aTrace;
+			//	buildEventListForCtfExecutionTrace(ctfExecutionTrace, monitor, rootList);
+			//} else {
 				buildEventListForDataDrivenTrace(aTrace, monitor, rootList);
-			}
+			//}
 			Collections.sort(rootList, fExecutionFlowEntryComparator);
 			synchronized (fEntryListMap) {
 				fEntryListMap.put(trace, (ArrayList<StateFlowEntry>) rootList.clone());

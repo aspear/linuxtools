@@ -121,40 +121,4 @@ public class StateFlowPresentationProvider extends TimeGraphPresentationProvider
         	return super.getEventHoverToolTipInfo(event);
         }
     }
-     /*   	
-            ExecutionFlowEntry entry = (ExecutionFlowEntry) event.getEntry();
-            ITmfStateSystem ssq = entry.getTrace().getStateSystem(CtfExecutionTrace.STATE_ID);
-            int tid = entry.getThreadId();          
-
-            try {
-                //Find every CPU first, then get the current thread
-                int cpusQuark = ssq.getQuarkAbsolute(Attributes.CPUS);
-                List<Integer> cpuQuarks = ssq.getSubAttributes(cpusQuark, false);
-                for (Integer cpuQuark : cpuQuarks) {
-                    int currentThreadQuark = ssq.getQuarkRelative(cpuQuark, Attributes.CURRENT_THREAD);
-                    ITmfStateInterval interval = ssq.querySingleState(event.getTime(), currentThreadQuark);
-                    if (!interval.getStateValue().isNull()) {
-                        ITmfStateValue state = interval.getStateValue();
-                        int currentThreadId = state.unboxInt();
-                        if (tid == currentThreadId) {
-                            retMap.put(Messages.ExecutionFlowView_attributeCpuName, ssq.getAttributeName(cpuQuark));
-                            break;
-                        }
-                    }
-                }
-
-            } catch (AttributeNotFoundException e) {
-                e.printStackTrace();
-            } catch (TimeRangeException e) {
-                e.printStackTrace();
-            } catch (StateValueTypeException e) {
-                e.printStackTrace();
-            } catch (StateSystemDisposedException e) {
-                //Ignored 
-            }
-        }
-        return retMap;
-        */
-    
-
 }
