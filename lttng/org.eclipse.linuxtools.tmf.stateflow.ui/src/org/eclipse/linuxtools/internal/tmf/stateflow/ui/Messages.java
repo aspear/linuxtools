@@ -6,10 +6,10 @@ import org.eclipse.osgi.util.NLS;
 public class Messages extends NLS {
     private static final String BUNDLE_NAME = "org.eclipse.linuxtools.internal.tmf.stateflow.ui.messages"; //$NON-NLS-1$
 
-    public static String StateFlowView_birthTimeColumn;
+    //public static String StateFlowView_birthTimeColumn;
     public static String StateFlowView_contextColumn;
-    public static String StateFlowView_nameColumn;
-    public static String StateFlowView_scopeColumn;
+    //public static String StateFlowView_nameColumn;
+    //public static String StateFlowView_scopeColumn;
     public static String StateFlowView_traceColumn;
 
     public static String StateFlowView_stateTypeName;

@@ -45,13 +45,10 @@ import org.eclipse.linuxtools.tmf.core.signal.TmfSignalHandler;
 import org.eclipse.linuxtools.tmf.core.signal.TmfTimeSynchSignal;
 import org.eclipse.linuxtools.tmf.core.signal.TmfTraceClosedSignal;
 import org.eclipse.linuxtools.tmf.core.signal.TmfTraceSelectedSignal;
-import org.eclipse.linuxtools.tmf.core.statesystem.IStatePresentationInfo;
 import org.eclipse.linuxtools.tmf.core.statesystem.IStateSystemContextHierarchyInfo;
-import org.eclipse.linuxtools.tmf.core.statesystem.IStateSystemFactory;
 import org.eclipse.linuxtools.tmf.core.statesystem.IStateSystemPresentationInfo;
 import org.eclipse.linuxtools.tmf.core.statesystem.ITmfStateSystem;
 import org.eclipse.linuxtools.tmf.core.statevalue.ITmfStateValue;
-import org.eclipse.linuxtools.tmf.core.statevalue.TmfStateValue;
 import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
 import org.eclipse.linuxtools.tmf.core.trace.TmfExperiment;
 import org.eclipse.linuxtools.tmf.stateflow.core.trace.CtfExecutionTrace;
@@ -67,9 +64,6 @@ import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.TimeGraphTimeEvent;
 import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.ITimeEvent;
 import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.ITimeGraphEntry;
 import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.TimeEvent;
-import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.widgets.Utils;
-import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.widgets.Utils.Resolution;
-import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.widgets.Utils.TimeFormat;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Composite;
@@ -84,6 +78,11 @@ import org.eclipse.ui.IEditorPart;
  */
 public class StateFlowView extends TmfView {
 
+	/**
+	 * little utility class that has a start and end time and convenience methods
+	 * for extending the beginning and end with other intervals
+	 * @author Aaron Spear
+	 */
 	private static class TimeSpan {
 		long startTime;
 		long endTime;
@@ -117,13 +116,12 @@ public class StateFlowView extends TmfView {
 			if (other == null) {
 				return;
 			}
-
-			if (other.getEndTime() > endTime) {
-				endTime = other.getEndTime();
+			if (other.startTime < startTime) {
+				startTime = other.startTime;
 			}
-			if (other.getStartTime() < startTime) {
-				startTime = other.getStartTime();
-			}
+			if (other.endTime > endTime) {
+				endTime = other.endTime;
+			}			
 		}
 	}
 
@@ -137,13 +135,15 @@ public class StateFlowView extends TmfView {
 	public static final String ID = "org.eclipse.linuxtools.tmf.stateflow.ui.views.stateflow"; //$NON-NLS-1$
 
 	private static final String CONTEXT_COLUMN = Messages.StateFlowView_contextColumn;
-	private static final String NAME_COLUMN = Messages.StateFlowView_nameColumn;
-	private static final String SCOPE_COLUMN = Messages.StateFlowView_scopeColumn;
-	private static final String BIRTH_TIME_COLUMN = Messages.StateFlowView_birthTimeColumn;
+	//private static final String NAME_COLUMN = Messages.StateFlowView_nameColumn;
+	//private static final String SCOPE_COLUMN = Messages.StateFlowView_scopeColumn;
+	//private static final String BIRTH_TIME_COLUMN = Messages.StateFlowView_birthTimeColumn;
 	private static final String TRACE_COLUMN = Messages.StateFlowView_traceColumn;
 
-	private final String[] COLUMN_NAMES = new String[] { CONTEXT_COLUMN, NAME_COLUMN, SCOPE_COLUMN, BIRTH_TIME_COLUMN,
-			TRACE_COLUMN };
+	private final static String[] COLUMN_NAMES = new String[] { CONTEXT_COLUMN, TRACE_COLUMN };
+	
+	private final static int CONTEXT_COLUMN_INDEX = 0;
+	private final static int TRACE_COLUMN_INDEX = 1;
 
 	/**
 	 * Redraw state enum
@@ -192,7 +192,7 @@ public class StateFlowView extends TmfView {
 	private Action fPreviousResourceAction;
 
 	// A comparator class
-	private final ExecutionFlowEntryComparator fExecutionFlowEntryComparator = new ExecutionFlowEntryComparator();
+	private final StateFlowEntryComparator fExecutionFlowEntryComparator = new StateFlowEntryComparator();
 
 	// The redraw state used to prevent unnecessary queuing of display runnables
 	private State fRedrawState = State.IDLE;
@@ -267,9 +267,13 @@ public class StateFlowView extends TmfView {
 		@Override
 		public String getColumnText(Object element, int columnIndex) {
 			StateFlowEntry entry = (StateFlowEntry) element;
-			if (columnIndex == 0) {
+			if (columnIndex == CONTEXT_COLUMN_INDEX) {
 				return entry.getName();
-			} else if (columnIndex == 1) {
+			}else if (columnIndex == TRACE_COLUMN_INDEX) {
+				return entry.getTrace().getName();
+			}
+			/*
+			else if (columnIndex == 1) {
 				return entry.getContextInfo();
 			} else if (columnIndex == 2) {
 				return Integer.toHexString(entry.getParentQuark());
@@ -278,12 +282,13 @@ public class StateFlowView extends TmfView {
 			} else if (columnIndex == 4) {
 				return entry.getTrace().getName();
 			}
+			*/
 			return ""; //$NON-NLS-1$
 		}
 
 	}
 
-	private static class ExecutionFlowEntryComparator implements Comparator<ITimeGraphEntry> {
+	private static class StateFlowEntryComparator implements Comparator<ITimeGraphEntry> {
 
 		@Override
 		public int compare(ITimeGraphEntry o1, ITimeGraphEntry o2) {
@@ -561,7 +566,7 @@ public class StateFlowView extends TmfView {
 		}
 		final long time = signal.getCurrentTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
 
-		String selectedMethodName = null;
+		String selectedObjectName = null;
 		ITmfTrace[] traces;
 		if (fTrace instanceof TmfExperiment) {
 			TmfExperiment experiment = (TmfExperiment) fTrace;
@@ -570,7 +575,7 @@ public class StateFlowView extends TmfView {
 			traces = new ITmfTrace[] { fTrace };
 		}
 		for (ITmfTrace trace : traces) {
-			if (selectedMethodName != null) {
+			if (selectedObjectName != null) {
 				break;
 			}
 
@@ -606,7 +611,7 @@ public class StateFlowView extends TmfView {
 										Attributes.STATE);
 								ITmfStateInterval statusInterval = ssq.querySingleState(time, statusQuark);
 								if (statusInterval.getStartTime() == time) {
-									selectedMethodName = currentMethodName;
+									selectedObjectName = currentMethodName;
 									break;
 								}
 							}
@@ -623,7 +628,7 @@ public class StateFlowView extends TmfView {
 				}
 			}
 		}
-		final String finalSelectedMethodName = selectedMethodName;
+		final String finalSelectedObjectName = selectedObjectName;
 
 		Display.getDefault().asyncExec(new Runnable() {
 			@Override
@@ -636,11 +641,11 @@ public class StateFlowView extends TmfView {
 				startZoomThread(fTimeGraphCombo.getTimeGraphViewer().getTime0(), fTimeGraphCombo.getTimeGraphViewer()
 						.getTime1());
 
-				if (finalSelectedMethodName != null) {
+				if (finalSelectedObjectName != null) {
 					for (Object element : fTimeGraphCombo.getTimeGraphViewer().getExpandedElements()) {
 						if (element instanceof StateFlowEntry) {
 							StateFlowEntry entry = (StateFlowEntry) element;
-							if (entry.getName().equals(finalSelectedMethodName)) {
+							if (entry.getName().equals(finalSelectedObjectName)) {
 								fTimeGraphCombo.setSelection(entry);
 								break;
 							}
@@ -837,9 +842,9 @@ public class StateFlowView extends TmfView {
 		fEndTime = Math.max(fEndTime, endTime);
 				
 		//FIXME
-		long traceStartTime = trace.getStartTime().getValue();
- 		long traceEndTime = trace.getEndTime().getValue();
-        System.out.println("traceStart='" + traceStartTime + "' traceEndTime='"+traceEndTime+"'" + " ssqStart='" + startTime + "' ssqEndTime='" + endTime + "' fStartTime='" + fStartTime + "' fEndTime='" + fEndTime + "'");
+		//long traceStartTime = trace.getStartTime().getValue();
+ 		//long traceEndTime = trace.getEndTime().getValue();
+        //System.out.println("traceStart='" + traceStartTime + "' traceEndTime='"+traceEndTime+"'" + " ssqStart='" + startTime + "' ssqEndTime='" + endTime + "' fStartTime='" + fStartTime + "' fEndTime='" + fEndTime + "'");
          	                
 		final IStateSystemContextHierarchyInfo[] contextHierarchy = statePresentationInfo.getContextHierarchy();
 
@@ -991,23 +996,32 @@ public class StateFlowView extends TmfView {
 			long objectStartTime = end;
 			long objectEndTime = start;
 			long objectBirthTime = -1;
-
+			StateFlowEntry entry = null;
 			for (ITmfStateInterval objectStateInterval : objectStateIntervals) {
 				if (monitor.isCanceled()) {
 					return null;
 				}
-
+				
 				objectStartTime = Math.min(objectStartTime, objectStateInterval.getStartTime());
 				objectEndTime = Math.max(objectEndTime, objectStateInterval.getEndTime() + 1);
-
 				if (objectBirthTime == -1) {
 					objectBirthTime = objectStartTime;
 				}
+				
+				ITmfStateValue stateValue = objectStateInterval.getStateValue();
+				if (!stateValue.isNull()) {				
+					long startTime = objectStateInterval.getStartTime();
+	                long endTime = objectStateInterval.getEndTime() + 1;
+	                if (entry == null) {
+	                    entry = new StateFlowEntry(objectQuark, trace, objectName, null, objectParentQuark,
+	        					objectBirthTime, startTime, endTime);
+	                    entryList.add(entry);
+	                }
+	                entry.addEvent(new TimeEvent(entry, startTime, endTime - startTime));
+	            } else {
+	                entry = null;
+	            }
 			}
-			StateFlowEntry entry = new StateFlowEntry(objectQuark, trace, objectName, null, objectParentQuark,
-					objectBirthTime, objectStartTime, objectEndTime);
-			entryList.add(entry);
-			entry.addEvent(new TimeEvent(entry, objectStartTime, objectEndTime - objectStartTime));
 			return new TimeSpan(objectStartTime, objectEndTime);
 
 		} catch (AttributeNotFoundException e) {
@@ -1163,7 +1177,7 @@ public class StateFlowView extends TmfView {
 				}
 
 				if (lastEndTime != time && lastEndTime != -1) {
-					eventList.add(new StateFlowEvent(entry, lastEndTime, time - lastEndTime, 0));
+					eventList.add(new StateFlowEvent(entry, lastEndTime, time - lastEndTime, -1));
 				}
 				eventList.add(new StateFlowEvent(entry, time, duration, stateIndex));
 				lastEndTime = time + duration;

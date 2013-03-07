@@ -27,12 +27,11 @@ import org.xml.sax.SAXException;
 
 public class XmlStateSystemPresentationInfoBuilder {
 	
-	public static final String SCHEMA_XML_FILE_EXTENSION = ".state-schema.xml";
-	
-	private static final String DEFINE_CONTEXT_ELEMENT = "defineContext";
-	private static final String SET_CONTEXT_ELEMENT = "setContext";
-	private static final String FIELD_ATTRIBUTE = "field";	
-	private static final String STATE_DECLARATION_ELEMENT = "stateDeclaration";		
+	public static final String SCHEMA_XML_FILE_EXTENSION 	= ".state-schema.xml";	
+	private static final String DEFINE_CONTEXT_ELEMENT 		= "defineContext";
+	private static final String SET_CONTEXT_ELEMENT 		= "setContext";
+	private static final String FIELD_ATTRIBUTE 			= "field";	
+	private static final String STATE_DECLARATION_ELEMENT 	= "stateDeclaration";		
 	
 	private Map<String,StateChangeInfo> 		eventTypeToStateChangeInfoMap;
 	private Map<String,ContextChangeInfo> 		eventTypeToContextChangeInfoMap;
@@ -229,7 +228,15 @@ public class XmlStateSystemPresentationInfoBuilder {
             		//TODO error checking
             		rgb = new RGB(Integer.parseInt(rgbString[0]),Integer.parseInt(rgbString[1]),Integer.parseInt(rgbString[2]));
             	}
-            	StatePresentationInfo stateItem = new StatePresentationInfo(stateName,rgb,s);
+            	StatePresentationInfo stateItem;
+            	if (rgb == null) {
+            		// there is no color defined for this one.  That means that this state should not be displayed, so here we are
+            		// going to clobber the index of the state, which means to use a null state value.  the RGB will be ignored in 
+            		// this case, but we must create a valid value or SWT will not be happy.
+            		stateItem = new StatePresentationInfo(stateName,new RGB(255,255,255),-1);
+            	} else {
+            		stateItem = new StatePresentationInfo(stateName,rgb,s);
+            	}
             	stateItemList.add(stateItem);
             	
             	//extract all possible string values that map to this state, and add them to the map to this stateItem

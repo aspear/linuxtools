@@ -39,6 +39,8 @@ import org.eclipse.swt.graphics.RGB;
  * Presentation provider for the control flow view
  */
 public class StateFlowPresentationProvider extends TimeGraphPresentationProvider {
+	
+	private static final String UNKNOWN_EVENT_NAME = "Unknown";
 
 	private IStateSystemPresentationInfo presentationInfo=null;
 	private StateItem[]  stateItemTable = new StateItem[0];
@@ -81,17 +83,19 @@ public class StateFlowPresentationProvider extends TimeGraphPresentationProvider
     @Override
     synchronized public String getEventName(ITimeEvent event) {
         if (event instanceof StateFlowEvent) {
-        	int index = ((StateFlowEvent)event).getStateIndex();        	
-        	return stateItemTable[index].getStateString();        	
-//        	ITmfStateValue stateValue = ((StateFlowEvent)event).getStateValue();
-//        	if (presentationInfo != null) {
-//        		IStatePresentationInfo pi = presentationInfo.getPresentationForStateValue(stateValue);
-//        		if (pi != null) {
-//        			return pi.getStateString();
-//        		}
-//        	}        	
+        	int index = ((StateFlowEvent)event).getStateIndex();
+        	if (index >= 0 && index < stateItemTable.length) {
+        		return stateItemTable[index].getStateString();
+        	}
+        	//ITmfStateValue stateValue = ((StateFlowEvent)event).getStateValue();
+        	//if (presentationInfo != null) {
+        	//	IStatePresentationInfo pi = presentationInfo.getPresentationForStateValue(stateValue);
+        	//	if (pi != null) {
+        	//		return pi.getStateString();
+        	//	}
+        	//}        	
         }
-        return "Unknown";
+        return UNKNOWN_EVENT_NAME;
     }
 
     @Override
@@ -108,9 +112,9 @@ public class StateFlowPresentationProvider extends TimeGraphPresentationProvider
         	if (entry.getContextInfo() != null ) {
         	    retMap.put("Context",entry.getContextInfo());
         	}
-        	if (entry.getName() != null) {
-        	    retMap.put("Name", entry.getName());
-        	}
+        	//if (entry.getName() != null) {
+        	//    retMap.put("Name", entry.getName());
+        	//}
         	return retMap;
         }
         else {

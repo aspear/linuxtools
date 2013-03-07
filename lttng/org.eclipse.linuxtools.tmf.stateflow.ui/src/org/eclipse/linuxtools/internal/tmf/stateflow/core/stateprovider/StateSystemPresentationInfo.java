@@ -138,7 +138,11 @@ public class StateSystemPresentationInfo implements IStateSystemPresentationInfo
 		public StatePresentationInfo(String stateString, RGB stateColor, int stateIndex) {
 			this.stateString = stateString;
 			this.stateColor = stateColor;
-			this.stateValue = TmfStateValue.newValueInt(stateIndex);
+			if (stateIndex >= 0) {
+				this.stateValue = TmfStateValue.newValueInt(stateIndex);
+			} else {
+				this.stateValue = TmfStateValue.nullValue();
+			}
 		}
 		
 		@Override
