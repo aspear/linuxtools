@@ -12,6 +12,7 @@ import org.eclipse.linuxtools.tmf.core.exceptions.TmfTraceException;
 import org.eclipse.linuxtools.tmf.core.statesystem.IStateChangeInput;
 import org.eclipse.linuxtools.tmf.core.statesystem.IStateSystemFactory;
 import org.eclipse.linuxtools.tmf.core.statesystem.ITmfStateSystem;
+import org.eclipse.linuxtools.tmf.core.statesystem.ITmfStateSystemBuilder;
 import org.eclipse.linuxtools.tmf.core.statesystem.StateSystemManager;
 import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
 
@@ -67,6 +68,14 @@ public class XmlDataDrivenStateInputFactory implements IStateSystemFactory {
         final IStateChangeInput htInput = new DataDrivenStateInput(statePresentationInfo,trace,trace.getEventType(),STATE_SYSTEM_ID);
 
         ITmfStateSystem ss = StateSystemManager.loadStateHistory(htFile, htInput, false);
+        
+        //FIXME this is not really elegant, but I have not figured out the right way to do this: in the case that this
+        //ss is a load of an existing state system from disk, it would appear that the IStateChangeInput instance is not used,
+        //and because of this the state presentation info does not get set in the ss
+        if (ss instanceof ITmfStateSystemBuilder) {
+        	ITmfStateSystemBuilder ssb = (ITmfStateSystemBuilder)ss;
+        	ssb.setStatePresentationInfo(statePresentationInfo);
+        }
         return ss;	    
 	}
 	

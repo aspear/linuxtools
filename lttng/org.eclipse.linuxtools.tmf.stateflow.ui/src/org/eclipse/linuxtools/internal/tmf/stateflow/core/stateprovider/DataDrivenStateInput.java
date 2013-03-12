@@ -158,7 +158,7 @@ public class DataDrivenStateInput extends AbstractStateChangeInput {
         // the last contextids are sized for the number of contexts we have in the hierarchy
     	//currentContextIds = new String[statePresentationInfo.getContextHierarchy().length];
     	
-    	rootContextStack = new ContextStack(new String[statePresentationInfo.getContextHierarchy().length],0);
+    	rootContextStack = new ContextStack(new String[statePresentationInfo.getContextHierarchy().length],-1);
     }
 
     @Override
@@ -177,17 +177,20 @@ public class DataDrivenStateInput extends AbstractStateChangeInput {
      
     /** fill in any missing context ids using the lastContextIds value.   */
     private void completeNewContext( final String[] contextIds ) {
-    	final String[] currentContextIds = currentContextStack.getId();
-    	for (int i=0;i<contextIds.length;++i) {
-    		if (contextIds[i] == null) {    			
-    			contextIds[i] = currentContextIds[i];
-    		} 
+    	if (currentContextStack != null) {
+	    	final String[] currentContextIds = currentContextStack.getId();
+	    	for (int i=0;i<contextIds.length;++i) {
+	    		if (contextIds[i] == null) {    			
+	    			contextIds[i] = currentContextIds[i];
+	    		} 
+	    	}
     	}
     }
     
     private ContextStack getContextStack( final String[] contextIds ) {
-    	ContextStack returnValue = rootContextStack.getChildContextStack(contextIds[0],true);    	
-    	for (int i=1;i<contextIds.length-1;++i) {
+    	ContextStack returnValue = rootContextStack.getChildContextStack(contextIds[0],true);
+    	int length = contextIds.length;
+    	for (int i=1;i<length;++i) {
     		ContextStack child = returnValue.getChildContextStack(contextIds[i], true);
     		returnValue = child;
     	}
@@ -223,7 +226,9 @@ public class DataDrivenStateInput extends AbstractStateChangeInput {
             		// switch the lastContextStack to be the value indicated by this context.            		
             		currentContextStack = getContextStack(contextIds);
             		
-            		currentContextQuark = ss.getQuarkRelativeAndAdd(rootQuark, currentContextStack.getId());
+            		String[] newId = currentContextStack.getId();
+            		
+            		currentContextQuark = ss.getQuarkRelativeAndAdd(rootQuark, newId);
             	}
             	
             	// the context may or may not have been switched by the code above.  Lets check to see if there
