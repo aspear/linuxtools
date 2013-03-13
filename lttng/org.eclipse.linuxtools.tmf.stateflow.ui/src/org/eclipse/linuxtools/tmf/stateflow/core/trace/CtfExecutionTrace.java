@@ -80,7 +80,8 @@ public class CtfExecutionTrace extends CtfTmfTrace {
     protected void buildStateSystem() throws TmfTraceException {
         super.buildStateSystem();
 
-        /* Set up the path to the history tree file we'll use */
+        /*
+        // Set up the path to the history tree file we'll use 
         IResource resource = this.getResource();
         String supplDirectory = null;
 
@@ -96,6 +97,7 @@ public class CtfExecutionTrace extends CtfTmfTrace {
 
         ITmfStateSystem ss = StateSystemManager.loadStateHistory(htFile, htInput, false);
         fStateSystems.put(STATE_ID, ss);
+        */
     }
 
 }

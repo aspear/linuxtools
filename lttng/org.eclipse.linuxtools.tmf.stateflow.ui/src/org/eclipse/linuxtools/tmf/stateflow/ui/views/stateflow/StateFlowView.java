@@ -52,6 +52,7 @@ import org.eclipse.linuxtools.tmf.core.statevalue.ITmfStateValue;
 import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
 import org.eclipse.linuxtools.tmf.core.trace.TmfExperiment;
 import org.eclipse.linuxtools.tmf.stateflow.core.trace.CtfExecutionTrace;
+import org.eclipse.linuxtools.tmf.stateflow.util.StringUtils;
 import org.eclipse.linuxtools.tmf.ui.editors.ITmfTraceEditor;
 import org.eclipse.linuxtools.tmf.ui.views.TmfView;
 import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.ITimeGraphRangeListener;
@@ -918,7 +919,10 @@ public class StateFlowView extends TmfView {
 		TimeSpan thisLevelsTimeSpan = new TimeSpan(startTime, endTime);
 
 		String objectName = ssq.getAttributeName(objectQuark);
-
+		
+		//FIXME remove this
+		System.out.println(String.format("recursivelyAddFlowEvents object=%-20s parent=%02d quark=%02d path='%s'",objectName,objectParentQuark,objectQuark,StringUtils.join(path,"/")));
+		
 		boolean addedStateAtThisLevel = false;
 
 		// hierarchy level will be -1 the very first time, which is the root
@@ -980,7 +984,10 @@ public class StateFlowView extends TmfView {
 			String objectName, int objectParentQuark, ArrayList<StateFlowEntry> entryList, ITmfStateSystem ssq,
 			IProgressMonitor monitor, long start, long end) {
 		try {
-
+			
+			//FIXME remove this
+    		System.out.println(String.format("addStateFlowEventForObject object=%-20s parent=%02d quark=%02d",objectName,objectParentQuark,objectQuark));
+    		
 			// TODO use monitor when available in api
 			List<ITmfStateInterval> objectStateIntervals = ssq.queryHistoryRange(objectStatusQuark, start, end - 1);
 			if (monitor.isCanceled()) {
@@ -1008,19 +1015,20 @@ public class StateFlowView extends TmfView {
 					objectBirthTime = objectStartTime;
 				}
 				
-				ITmfStateValue stateValue = objectStateInterval.getStateValue();
-				if (!stateValue.isNull()) {				
-					long startTime = objectStateInterval.getStartTime();
-	                long endTime = objectStateInterval.getEndTime() + 1;
-	                if (entry == null) {
-	                    entry = new StateFlowEntry(objectQuark, trace, objectName, null, objectParentQuark,
-	        					objectBirthTime, startTime, endTime);
-	                    entryList.add(entry);
-	                }
-	                entry.addEvent(new TimeEvent(entry, startTime, endTime - startTime));
-	            } else {
-	                entry = null;
-	            }
+				//ITmfStateValue stateValue = objectStateInterval.getStateValue();
+					
+				long startTime = objectStateInterval.getStartTime();
+                long endTime = objectStateInterval.getEndTime() + 1;
+                if (entry == null) {
+                	//FIXME remove this
+            		//System.out.println(String.format("create StateFlowEntry object=%-20s parent=%02d quark=%02d %s",objectName,objectParentQuark,objectQuark,stateValue.toString()));
+            		
+                    entry = new StateFlowEntry(objectQuark, trace, objectName, null, objectParentQuark,
+        					objectBirthTime, startTime, endTime);
+                    entryList.add(entry);
+                }
+                entry.addEvent(new TimeEvent(entry, startTime, endTime - startTime));
+	             
 			}
 			return new TimeSpan(objectStartTime, objectEndTime);
 

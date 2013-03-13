@@ -22,10 +22,13 @@ import org.eclipse.linuxtools.tmf.core.event.ITmfEvent;
 import org.eclipse.linuxtools.tmf.core.event.ITmfEventField;
 import org.eclipse.linuxtools.tmf.core.event.ITmfEventType;
 import org.eclipse.linuxtools.tmf.core.event.ITmfTimestamp;
+import org.eclipse.linuxtools.tmf.core.exceptions.AttributeNotFoundException;
 import org.eclipse.linuxtools.tmf.core.statesystem.AbstractStateChangeInput;
 import org.eclipse.linuxtools.tmf.core.statesystem.IStatePresentationInfo;
 import org.eclipse.linuxtools.tmf.core.statesystem.IStateSystemContextHierarchyInfo;
 import org.eclipse.linuxtools.tmf.core.statesystem.ITmfStateSystemBuilder;
+import org.eclipse.linuxtools.tmf.core.statevalue.ITmfStateValue;
+import org.eclipse.linuxtools.tmf.core.statevalue.TmfStateValue;
 import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
 
 /**
@@ -39,41 +42,129 @@ import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
  */
 public class DataDrivenStateInput extends AbstractStateChangeInput {
 	
-	 
-    
+	
+	/**
+     * copy from the source to the destination any values that are not null.  
+     * @param source
+     * @param dest
+     * @param startingLevel
+     */
+    public static void copyContext( final String[] source, final String[] dest, int startingLevel ) {
+    	for (int i=startingLevel;i<source.length;++i) {
+    		if (source[i] != null) {    			
+    			dest[i] = source[i];
+    		}
+    	}
+    }
+    /**
+     * compare id's
+     * @param id1
+     * @param id2
+     * @return
+     */
+    public static boolean idsAreEqual(final String[] id1, final String[] id2 ) {
+		if (id1.length != id2.length){
+			return false;
+		}
+		for (int i=0;i<id1.length;++i) {
+    		if (id1[i] != null && id2[i] != null) {    			
+    			if (!id1[i].equals(id2[i])) {
+    				return false;
+    			}
+    		} else {
+    			return false; //one or the other is null
+    		}
+    	}
+		return true;
+	}
+	
+	public static class ContextState implements Cloneable {
+		private final String[] 		id;
+		private ITmfStateValue  	stateValue;
+		
+		public ContextState(final String[] id, final ITmfStateValue initialStateValue) {
+			this.id = id;
+			this.stateValue = initialStateValue;
+		}
+		
+		public String[] getId() {
+			return id;
+		}
+		public ITmfStateValue getStateValue() {
+			return stateValue;
+		}
+		public void setStateValue(ITmfStateValue stateValue) {
+			this.stateValue = stateValue;
+		}
+		
+		boolean idsAreEqual(final ContextState other ) {
+			if (this == other) {
+				return true;
+			}
+			if (other == null) {
+				return false;
+			}
+			return DataDrivenStateInput.idsAreEqual(this.id,other.id);			
+		}
+		
+		public void copy( ContextState other ) {
+			//copy the others id values into our array
+			copyContext(other.id,id,0);
+			//replace our state with the others state
+			stateValue = other.stateValue;
+		}
+		
+		@Override
+		public String toString() {
+			StringBuilder builder = new StringBuilder();
+			builder.append("id=[");
+			for (int i=0;i<id.length;++i) {
+				builder.append(id[i]).append("/");
+			}
+			builder.append("]");
+			if (stateValue == null) {
+				builder.append(" state=null");
+			} else {
+				builder.append(" state=").append(stateValue.toString());
+			}					
+			return builder.toString();
+		}
+		
+		@Override
+		public ContextState clone() {
+			return new ContextState(id.clone(),stateValue);
+		}
+	}
+	
 	private static class ContextStack {
-		/**
-	     * copy from the source to the destination any values that are not null.  
-	     * @param source
-	     * @param dest
-	     * @param startingLevel
-	     */
-	    public static void copyContext( final String[] source, final String[] dest, int startingLevel ) {
-	    	for (int i=startingLevel;i<source.length;++i) {
-	    		if (source[i] != null) {    			
-	    			dest[i] = source[i];
-	    		}
-	    	}
-	    }
-	    
-		final String[] contextId;
-		final int contextLevel;
+			    
+	    private final ContextState 	currentState;
+		private final int 			contextLevel;
 		
 		private LinkedHashMap<String,ContextStack> 	contextToChildStackMap = null;
-		private Stack<String[]> 			 		stack = null;
+		private Stack<ContextState> 			 	stack = null;
 		
-		public ContextStack(final String[] contextId, int contextLevel) {
-			this.contextId = contextId;
+		//public ContextStack(final ContextState contextState, int contextLevel) {
+		//	this.contextState = contextState;
+		//	this.contextLevel = contextLevel;
+		//}
+		
+		public ContextStack(ContextState initialState, int contextLevel) {
+			this.currentState = initialState;
 			this.contextLevel = contextLevel;
 		}
 		
 		public String[] getId() {
-			return contextId;
+			return currentState.getId();
 		}
 		
-		public int getContextLevel() {
-			return contextLevel;
+		public ContextState getState() {
+			return currentState;
 		}
+						
+		//public int getContextLevel() {
+		//	return contextLevel;
+		//}
 			
 		public synchronized ContextStack getChildContextStack( final String childContext, boolean createIfNotExisting ) {
 			
@@ -84,9 +175,13 @@ public class DataDrivenStateInput extends AbstractStateChangeInput {
 			if (contextToChildStackMap != null) {
 				ContextStack child = contextToChildStackMap.get(childContext);
 				if (child == null && createIfNotExisting) {
-					final String[] childId = contextId.clone();
-					childId[contextLevel+1] = childContext;
-					child = new ContextStack(childId,contextLevel+1);
+					
+					//clone/generate a valid id for this new child
+					String[] newChildId = currentState.getId().clone();
+					newChildId[contextLevel+1] = childContext;
+					
+					ContextState newChildState = new ContextState(newChildId,currentState.getStateValue());
+					child = new ContextStack(newChildState,contextLevel+1);
 					contextToChildStackMap.put(childContext,child);					
 				}
 				return child;
@@ -96,23 +191,45 @@ public class DataDrivenStateInput extends AbstractStateChangeInput {
 		}
 		
 		/**
-		 * push the CURRENT context id value on the stack and then change the current value
-		 * considering the given newContextIds
-		 * @param newContextIds
+		 * Makes a clone of the current context id/state and pushes it on the stack.  Then changes
+		 * the id of the current context to newContextId.  Note that the assumption is that the state may be updated
+		 * subsequently
+		 * @param newContextIds the updated/new context id.
+		 * @return the complete id/state that was current before this call
 		 */
-		public synchronized void push(final String[] newContextIds) {
-			getStack().push(contextId);
-			copyContext(newContextIds,contextId,this.contextLevel);
+		public synchronized ContextState push(String[] newContextId) {
+			
+			ContextState previousState = currentState.clone();
+			
+			// must push a clone since the id value is about to change.  strictly speaking only the 
+			// last level should be a changing, so as a future optimization we could only clone that string
+			getStack().push(previousState);
+			
+			//now change to the new state.  Note that we do need to update the id
+			//in the new state to pick up any leading values from the current context
+			copyContext(newContextId,currentState.getId(),contextLevel);
+				
+			return previousState;
 		}
 		
 		/**
-		 * push the CURRENT context id value on the stack and then change the current value
-		 * considering the given newContextIds
-		 * @param newContextIds
+		 * Update the current state to be the value on the top of the stack.  
+		 * @return the previous current value (the value before the pop)
 		 */
-		public synchronized void pop() {
-			String[] ids = getStack().pop();
-			copyContext(ids,contextId,this.contextLevel);
+		
+		public synchronized ContextState pop() {
+			ContextState previousState = currentState.clone();
+			
+			Stack<ContextState> stack = getStack();
+			if (!stack.isEmpty()) {
+				ContextState newState = stack.pop();	
+				currentState.copy(newState);
+				
+			} else {
+				//this should not happen
+				System.err.println("Error pop on empty stack for " + toString());
+			}
+			return previousState;
 		}
 			
 		/**
@@ -120,9 +237,9 @@ public class DataDrivenStateInput extends AbstractStateChangeInput {
 		 * method does lazy creation of the stack object
 		 * @return
 		 */
-		public synchronized Stack<String[]>  getStack() {
+		public synchronized Stack<ContextState>  getStack() {
 			if (stack == null) {
-				stack = new Stack<String[]>();
+				stack = new Stack<ContextState>();
 			}				
 			return stack;			
 		}
@@ -137,6 +254,28 @@ public class DataDrivenStateInput extends AbstractStateChangeInput {
 			if (stack != null) {
 				stack.clear();
 			}
+		}
+		
+		@Override
+		public String toString() {
+			StringBuilder builder = new StringBuilder();
+			builder.append("id=[");
+			String[] id = currentState.getId();
+			for (int i=0;i<id.length;++i) {
+				builder.append(id[i]).append("/");
+			}
+			builder.append("]");
+			builder.append(" level=").append(contextLevel);
+			builder.append(" stack=");
+			if (stack != null) {
+				for (int s=0;s<stack.size();++s) {
+					builder.append(stack.get(s).toString()).append(">");
+				}
+			} else {
+				builder.append("null");
+			}
+			
+			return builder.toString();
 		}
 	}
 	
@@ -157,8 +296,19 @@ public class DataDrivenStateInput extends AbstractStateChangeInput {
         
         // the last contextids are sized for the number of contexts we have in the hierarchy
     	//currentContextIds = new String[statePresentationInfo.getContextHierarchy().length];
+        
+        // FIXME I am not sure what to initialize the context to.  maybe this should be trace specific somehow?
+        // either that or there should be events in the event stream that set values like the PID and all of that.
+        IStateSystemContextHierarchyInfo[] hierarchyInfo = statePresentationInfo.getContextHierarchy();
+        String[] rootContextId = new String[hierarchyInfo.length];
+        for (int i=0;i<hierarchyInfo.length;++i) {
+        	rootContextId[i] = hierarchyInfo[i].getContextId();
+        }
+        
+        ContextState rootState = new ContextState(rootContextId,TmfStateValue.nullValue());    	
+    	rootContextStack = new ContextStack(rootState,-1);
     	
-    	rootContextStack = new ContextStack(new String[statePresentationInfo.getContextHierarchy().length],-1);
+    	currentContextStack = rootContextStack;
     }
 
     @Override
@@ -178,11 +328,19 @@ public class DataDrivenStateInput extends AbstractStateChangeInput {
     /** fill in any missing context ids using the lastContextIds value.   */
     private void completeNewContext( final String[] contextIds ) {
     	if (currentContextStack != null) {
+    		boolean gotValidOneInContextIds = false;
 	    	final String[] currentContextIds = currentContextStack.getId();
 	    	for (int i=0;i<contextIds.length;++i) {
-	    		if (contextIds[i] == null) {    			
+	    		if (contextIds[i] == null) {    
+	    			if (gotValidOneInContextIds) {
+	    				//you already got one valid value, and now you have a null.  That means that this is the level to 
+	    				//stop at.
+	    				break;
+	    			}
 	    			contextIds[i] = currentContextIds[i];
-	    		} 
+	    		} else {
+	    			gotValidOneInContextIds = true;
+	    		}
 	    	}
     	}
     }
@@ -191,8 +349,12 @@ public class DataDrivenStateInput extends AbstractStateChangeInput {
     	ContextStack returnValue = rootContextStack.getChildContextStack(contextIds[0],true);
     	int length = contextIds.length;
     	for (int i=1;i<length;++i) {
-    		ContextStack child = returnValue.getChildContextStack(contextIds[i], true);
-    		returnValue = child;
+    		if (contextIds[i] != null) {
+    			ContextStack child = returnValue.getChildContextStack(contextIds[i], true);
+    			returnValue = child;
+    		} else {
+    			break;
+    		}
     	}
     	return returnValue;
     }
@@ -212,9 +374,17 @@ public class DataDrivenStateInput extends AbstractStateChangeInput {
 		if (eventType == null) {
 			return;
 		}		
-		String eventTypeName = eventType.getName();	    	
-        	    	
-        try {          	       	
+		String eventTypeName = eventType.getName();
+		       	    	
+        try {     
+	        	// NOTE: the ITmfTimestamp values that come on the events could be in any scale.  We use nanosecond
+	    		// scale in the state system, so normalize the timestamp from the event before addding the new state value
+	    		final long ts = event.getTimestamp().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();	
+    		
+        		// if there is a context that we need to close the state on, this id will contain it
+	    		ContextState contextStateToClose = null;
+	    		ContextState contextStateToRestore = null;
+        	
             	// check to see if there is a context switch in this event
             	final String[] contextIds = statePresentationInfo.getSwitchContext(eventTypeName,event);
             	if (contextIds != null) {
@@ -235,14 +405,20 @@ public class DataDrivenStateInput extends AbstractStateChangeInput {
             	// are any context pushes in this event.  That means to take the 
             	final String[] pushedContextIds = statePresentationInfo.getPushContext(eventTypeName,event);
             	if (pushedContextIds != null) {
-            		currentContextStack.push(pushedContextIds);
-            		currentContextQuark = ss.getQuarkRelativeAndAdd(rootQuark, currentContextStack.getId());
+            		contextStateToClose = currentContextStack.push(pushedContextIds);
+            		currentContextQuark = ss.getQuarkRelativeAndAdd(rootQuark, currentContextStack.getId());            		
             	}    
             	
             	final String[] poppedContextIds = statePresentationInfo.getPopContext(eventTypeName,event);
-            	if (pushedContextIds != null) {
-            		currentContextStack.pop();
-            		currentContextQuark = ss.getQuarkRelativeAndAdd(rootQuark, currentContextStack.getId());
+            	if (poppedContextIds != null) {
+            		// call pop to update the current context value to the previous value on the stack, 
+            		// and then return the previously active context, which we close
+            		contextStateToClose = currentContextStack.pop();
+            		
+            		// here we are not going to do a state change, but rather we are going to restore the previous context
+            		contextStateToRestore = currentContextStack.getState();
+            		
+            		//currentContextQuark = ss.getQuarkRelativeAndAdd(rootQuark, currentContextStack.getId());
             	}   
             	
             	// TODO the state below could possibly be for multiple or a single level in the hierarchy
@@ -253,23 +429,36 @@ public class DataDrivenStateInput extends AbstractStateChangeInput {
 	            	//check to see if there is new state that we can extract for this event
 	            	IStatePresentationInfo newState = statePresentationInfo.getNewState(eventTypeName,event);
 	            	if (newState != null) {
-	            		           		          		
-	            		// NOTE: the ITmfTimestamp values that come on the events could be in any scale.  We use nanosecond
-	            		// scale in the state system, so normalize the timestamp from the event before addding the new state value
-	            		final long ts = event.getTimestamp().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();	            		
-	                    
-	                    // get the status quark for this particular context
+	            		
+	            		ITmfStateValue newStateValue = newState.getStateValue();	            		
+	            		
+	            		// must update the current context with the new state value
+	            		currentContextStack.getState().setStateValue(newStateValue);	            		           		          		
+	            		            		            			                    
+	                    // get/add the status quark for the current context
 	                    int statusQuark = ss.getQuarkRelativeAndAdd(currentContextQuark,Attributes.STATE);
-	                    	                    
-	                    //FIXME
-	                    //long traceStartTime = event.getTrace().getStartTime().getValue();
-	            		//long traceEndTime = event.getTrace().getEndTime().getValue();
-	                    //System.out.println("Add Quark=" + currentContextQuark + " statusQuark=" + statusQuark+ " state="+newState.getStateValue().toString() + " at ts='" + ts + "' traceStart='" + traceStartTime + "' traceEndTime='"+traceEndTime+"'");
-	                    	                
-	                    // set the state at this particular point in time to the new value
-	                    ss.modifyAttribute(ts, newState.getStateValue(), statusQuark);                    
+	                    ss.modifyAttribute(ts, newStateValue, statusQuark);                    
 	            	}           
             	}
+            	
+            	if ((contextStateToClose != null) && !contextStateToClose.idsAreEqual(currentContextStack.getState())) {
+        			// the previous context is not the same as the new context.  That means that we need to close the 
+                	// previous context
+        			int contextToCloseQuark = ss.getQuarkRelative(rootQuark, contextStateToClose.getId());	
+        			try {
+	                    int contextToCloseStatusQuark = ss.getQuarkRelative(contextToCloseQuark,Attributes.STATE);
+	                    ss.modifyAttribute(ts, TmfStateValue.nullValue(), contextToCloseStatusQuark);
+        			}catch(AttributeNotFoundException e) {        				
+        			}
+        		}
+            	if (contextStateToRestore != null) {
+        			int contextToRestoreQuark = ss.getQuarkRelative(rootQuark, contextStateToRestore.getId());	            				            			      		
+        			try {
+        				int contextToRestoreStatusQuark = ss.getQuarkRelative(contextToRestoreQuark,Attributes.STATE);
+        			    ss.modifyAttribute(ts, contextStateToRestore.getStateValue(), contextToRestoreStatusQuark);
+        			}catch(AttributeNotFoundException e) {        				
+        			}
+        		}           	
      
         } catch (Exception e) {           
             e.printStackTrace();

@@ -88,11 +88,14 @@ public class XmlDataDrivenStateInputFactory implements IStateSystemFactory {
 
 		File traceDirectory;
 		File traceFile = new File(trace.getPath());
-		if (traceFile.isDirectory()) {
-			traceDirectory = traceFile;
-		} else {
-			traceDirectory = traceFile.getParentFile();
+		
+		// in either the case where it is a directory (as is done with CTF) or a trace file, we
+		// want to check for the schema file in the parent directory
+		traceDirectory = traceFile.getParentFile();
+		if (traceDirectory == null) {
+			traceDirectory = traceFile; //might be OS file system root
 		}
+		
 		return new File(traceDirectory, trace.getName() + ".state-schema.xml");
 	}
 	
