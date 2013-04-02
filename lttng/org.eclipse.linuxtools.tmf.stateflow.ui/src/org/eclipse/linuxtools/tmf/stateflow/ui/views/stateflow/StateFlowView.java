@@ -1,5 +1,6 @@
 /*******************************************************************************
  * Copyright (c) 2012 Ericsson
+ * Copyright (c) 2013 VMware
  *
  * All rights reserved. This program and the accompanying materials are
  * made available under the terms of the Eclipse Public License v1.0 which
@@ -8,6 +9,8 @@
  *
  * Contributors:
  *   Patrick Tasse - Initial API and implementation
+ *   Aaron Spear - Cloned and rewrote to be data driven for  a
+ *                 generic notion of state
  *******************************************************************************/
 
 package org.eclipse.linuxtools.tmf.stateflow.ui.views.stateflow;
@@ -29,7 +32,7 @@ import org.eclipse.jface.viewers.ITableLabelProvider;
 import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.linuxtools.internal.tmf.stateflow.core.Attributes;
-import org.eclipse.linuxtools.internal.tmf.stateflow.core.stateprovider.XmlDataDrivenStateInputFactory;
+import org.eclipse.linuxtools.internal.tmf.stateflow.core.stateprovider.DataDrivenStateInput;
 import org.eclipse.linuxtools.internal.tmf.stateflow.ui.Messages;
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfTimestamp;
 import org.eclipse.linuxtools.tmf.core.event.ITmfTimestamp;
@@ -48,7 +51,6 @@ import org.eclipse.linuxtools.tmf.core.signal.TmfTraceSelectedSignal;
 import org.eclipse.linuxtools.tmf.core.statesystem.IStateSystemContextHierarchyInfo;
 import org.eclipse.linuxtools.tmf.core.statesystem.IStateSystemPresentationInfo;
 import org.eclipse.linuxtools.tmf.core.statesystem.ITmfStateSystem;
-import org.eclipse.linuxtools.tmf.core.statevalue.ITmfStateValue;
 import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
 import org.eclipse.linuxtools.tmf.core.trace.TmfExperiment;
 import org.eclipse.linuxtools.tmf.stateflow.core.trace.CtfExecutionTrace;
@@ -65,6 +67,7 @@ import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.TimeGraphTimeEvent;
 import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.ITimeEvent;
 import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.ITimeGraphEntry;
 import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.TimeEvent;
+import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.widgets.Utils.TimeFormat;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Composite;
@@ -75,7 +78,7 @@ import org.eclipse.ui.IEditorPart;
 
 /**
  * The Control Flow view main object
- * 
+ *
  */
 public class StateFlowView extends TmfView {
 
@@ -108,7 +111,7 @@ public class StateFlowView extends TmfView {
 		/**
 		 * if the other TimeSpan extends past ours on either side (beginning or
 		 * end) we extend our time to cover the other
-		 * 
+		 *
 		 * @param other
 		 *            ignored if null. Otherwise our start and end are extended
 		 *            if the other goes past them
@@ -122,7 +125,7 @@ public class StateFlowView extends TmfView {
 			}
 			if (other.endTime > endTime) {
 				endTime = other.endTime;
-			}			
+			}
 		}
 	}
 
@@ -142,7 +145,7 @@ public class StateFlowView extends TmfView {
 	private static final String TRACE_COLUMN = Messages.StateFlowView_traceColumn;
 
 	private final static String[] COLUMN_NAMES = new String[] { CONTEXT_COLUMN, TRACE_COLUMN };
-	
+
 	private final static int CONTEXT_COLUMN_INDEX = 0;
 	private final static int TRACE_COLUMN_INDEX = 1;
 
@@ -410,7 +413,7 @@ public class StateFlowView extends TmfView {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see
 	 * org.eclipse.linuxtools.tmf.ui.views.TmfView#createPartControl(org.eclipse
 	 * .swt.widgets.Composite)
@@ -459,8 +462,8 @@ public class StateFlowView extends TmfView {
 			}
 		});
 
-		// FIXME not sure what this should be changed to
-		// fTimeGraphCombo.getTimeGraphViewer().setTimeCalendarFormat(true);
+		// we use epoch calendar format for this viewer.  TODO should this be data driven?
+		fTimeGraphCombo.getTimeGraphViewer().setTimeFormat(TimeFormat.CALENDAR);
 
 		// View Action Handling
 		makeActions();
@@ -477,7 +480,7 @@ public class StateFlowView extends TmfView {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see org.eclipse.ui.part.WorkbenchPart#setFocus()
 	 */
 	@Override
@@ -491,7 +494,7 @@ public class StateFlowView extends TmfView {
 
 	/**
 	 * Handler for the trace selected signal
-	 * 
+	 *
 	 * @param signal
 	 *            The signal that's received
 	 */
@@ -501,6 +504,9 @@ public class StateFlowView extends TmfView {
 			return;
 		}
 		fTrace = signal.getTrace();
+
+		IStateSystemPresentationInfo statePresentationInfo = getPresentationInfoForTrace(fTrace);
+		updateStateSystemPresentationInfo(statePresentationInfo);
 
 		synchronized (fEntryListMap) {
 			fEntryList = fEntryListMap.get(fTrace);
@@ -520,7 +526,7 @@ public class StateFlowView extends TmfView {
 
 	/**
 	 * Trace is closed: clear the data structures and the view
-	 * 
+	 *
 	 * @param signal
 	 *            the signal received
 	 */
@@ -547,7 +553,9 @@ public class StateFlowView extends TmfView {
 	}
 
 	private void updateStateSystemPresentationInfo(IStateSystemPresentationInfo statePresentationInfo) {
-		fStateFlowPresentationProvider.setPresentationData(statePresentationInfo);
+		if (statePresentationInfo != null) {
+			fStateFlowPresentationProvider.setPresentationData(statePresentationInfo);
+		}
 		// NOTE THAT THIS CANNOT BE DONE ON THE CALLERS THREAD, WHICH IS A
 		// WORKING THREAD.
 		// SO, I AM MOVING IT TO BE DONE ON ANY REFRESH/REDRAW
@@ -556,7 +564,7 @@ public class StateFlowView extends TmfView {
 
 	/**
 	 * Handler for the synch signal
-	 * 
+	 *
 	 * @param signal
 	 *            The signal that's received
 	 */
@@ -584,7 +592,7 @@ public class StateFlowView extends TmfView {
 			// systems with the associated
 			// state presstate systems that we know.
 
-			ITmfStateSystem ss = trace.getStateSystem(XmlDataDrivenStateInputFactory.STATE_SYSTEM_ID);
+			ITmfStateSystem ss = trace.getStateSystem(DataDrivenStateInput.STATE_SYSTEM_ID);
 			if (ss != null) {
 				IStateSystemPresentationInfo statePresentationInfo = ss.getStatePresentationInfo();
 				if (statePresentationInfo != null) {
@@ -623,11 +631,11 @@ public class StateFlowView extends TmfView {
 						} catch (StateValueTypeException e) {
 							e.printStackTrace();
 						} catch (StateSystemDisposedException e) {
-							// Ignored 
+							// Ignored
 						}
 					}
 				}
-			}	*/		
+			}	*/
 		}
 		final String finalSelectedObjectName = selectedObjectName;
 
@@ -659,7 +667,7 @@ public class StateFlowView extends TmfView {
 
 	/**
 	 * Handler for the range sync signal
-	 * 
+	 *
 	 * @param signal
 	 *            The signal that's received
 	 */
@@ -815,10 +823,18 @@ public class StateFlowView extends TmfView {
 		buildTree(entryList, rootList);
 	}
 
+	private IStateSystemPresentationInfo getPresentationInfoForTrace(ITmfTrace trace) {
+		ITmfStateSystem ssq = trace.getStateSystem(DataDrivenStateInput.STATE_SYSTEM_ID);
+		if (ssq == null) {
+			return null;
+		}
+		return ssq.getStatePresentationInfo();
+	}
+
 	private void buildEventListForDataDrivenTrace(ITmfTrace trace, IProgressMonitor monitor,
 			ArrayList<StateFlowEntry> rootList) {
 
-		ITmfStateSystem ssq = trace.getStateSystem(XmlDataDrivenStateInputFactory.STATE_SYSTEM_ID);
+		ITmfStateSystem ssq = trace.getStateSystem(DataDrivenStateInput.STATE_SYSTEM_ID);
 		if (ssq == null) {
 			return;
 		}
@@ -841,12 +857,12 @@ public class StateFlowView extends TmfView {
 		long endTime = ssq.getCurrentEndTime() + 1;
 		fStartTime = Math.min(fStartTime, startTime);
 		fEndTime = Math.max(fEndTime, endTime);
-				
+
 		//FIXME
 		//long traceStartTime = trace.getStartTime().getValue();
  		//long traceEndTime = trace.getEndTime().getValue();
         //System.out.println("traceStart='" + traceStartTime + "' traceEndTime='"+traceEndTime+"'" + " ssqStart='" + startTime + "' ssqEndTime='" + endTime + "' fStartTime='" + fStartTime + "' fEndTime='" + fEndTime + "'");
-         	                
+
 		final IStateSystemContextHierarchyInfo[] contextHierarchy = statePresentationInfo.getContextHierarchy();
 
 		// the root quark is named after the root context id name
@@ -881,7 +897,7 @@ public class StateFlowView extends TmfView {
 	 * that object has a state quark, and if it does, then add a flow event for
 	 * it. If not, search for all children of the object and recurse to cover
 	 * them.
-	 * 
+	 *
 	 * @param hierarchyLevel
 	 *            the current level in the hiearchy. an index into
 	 *            contextHierarchy
@@ -919,10 +935,10 @@ public class StateFlowView extends TmfView {
 		TimeSpan thisLevelsTimeSpan = new TimeSpan(startTime, endTime);
 
 		String objectName = ssq.getAttributeName(objectQuark);
-		
+
 		//FIXME remove this
 		System.out.println(String.format("recursivelyAddFlowEvents object=%-20s parent=%02d quark=%02d path='%s'",objectName,objectParentQuark,objectQuark,StringUtils.join(path,"/")));
-		
+
 		boolean addedStateAtThisLevel = false;
 
 		// hierarchy level will be -1 the very first time, which is the root
@@ -984,10 +1000,10 @@ public class StateFlowView extends TmfView {
 			String objectName, int objectParentQuark, ArrayList<StateFlowEntry> entryList, ITmfStateSystem ssq,
 			IProgressMonitor monitor, long start, long end) {
 		try {
-			
+
 			//FIXME remove this
     		System.out.println(String.format("addStateFlowEventForObject object=%-20s parent=%02d quark=%02d",objectName,objectParentQuark,objectQuark));
-    		
+
 			// TODO use monitor when available in api
 			List<ITmfStateInterval> objectStateIntervals = ssq.queryHistoryRange(objectStatusQuark, start, end - 1);
 			if (monitor.isCanceled()) {
@@ -1008,27 +1024,21 @@ public class StateFlowView extends TmfView {
 				if (monitor.isCanceled()) {
 					return null;
 				}
-				
+
 				objectStartTime = Math.min(objectStartTime, objectStateInterval.getStartTime());
 				objectEndTime = Math.max(objectEndTime, objectStateInterval.getEndTime() + 1);
 				if (objectBirthTime == -1) {
 					objectBirthTime = objectStartTime;
 				}
-				
-				//ITmfStateValue stateValue = objectStateInterval.getStateValue();
-					
+
 				long startTime = objectStateInterval.getStartTime();
                 long endTime = objectStateInterval.getEndTime() + 1;
                 if (entry == null) {
-                	//FIXME remove this
-            		//System.out.println(String.format("create StateFlowEntry object=%-20s parent=%02d quark=%02d %s",objectName,objectParentQuark,objectQuark,stateValue.toString()));
-            		
-                    entry = new StateFlowEntry(objectQuark, trace, objectName, null, objectParentQuark,
+                	entry = new StateFlowEntry(objectQuark, trace, objectName, null, objectParentQuark,
         					objectBirthTime, startTime, endTime);
                     entryList.add(entry);
                 }
                 entry.addEvent(new TimeEvent(entry, startTime, endTime - startTime));
-	             
 			}
 			return new TimeSpan(objectStartTime, objectEndTime);
 
@@ -1045,7 +1055,7 @@ public class StateFlowView extends TmfView {
 	/**
 	 * iterate all events in the given trace and create StateFlowEntriesd as
 	 * appropriate depending on the event schema
-	 * 
+	 *
 	 * @param trace
 	 * @param monitor
 	 */
@@ -1121,7 +1131,7 @@ public class StateFlowView extends TmfView {
 	}
 
 	private void buildStatusEvents(ITmfTrace trace, StateFlowEntry entry, IProgressMonitor monitor) {
-		ITmfStateSystem ssq = entry.getTrace().getStateSystem(XmlDataDrivenStateInputFactory.STATE_SYSTEM_ID);
+		ITmfStateSystem ssq = entry.getTrace().getStateSystem(DataDrivenStateInput.STATE_SYSTEM_ID);
 		long start = ssq.getStartTime();
 		long end = ssq.getCurrentEndTime() + 1;
 		long resolution = Math.max(1, (end - start) / fDisplayWidth);
@@ -1148,27 +1158,27 @@ public class StateFlowView extends TmfView {
 		if (endTime <= startTime) {
 			return null;
 		}
-		ITmfStateSystem ssq = entry.getTrace().getStateSystem(XmlDataDrivenStateInputFactory.STATE_SYSTEM_ID);
-		
+		ITmfStateSystem ssq = entry.getTrace().getStateSystem(DataDrivenStateInput.STATE_SYSTEM_ID);
+
 		long ssqStartTime = ssq.getStartTime();
 		long ssqEndTime = ssq.getCurrentEndTime();
 		startTime = ssqStartTime;
 		endTime = ssqEndTime; //FIXME
-				
+
 		List<ITimeEvent> eventList = null;
 		int currentQuark = -1;
 		try {
 			currentQuark = entry.getNodeQuark();
-			int statusQuark = ssq.getQuarkRelative(entry.getNodeQuark(), Attributes.STATE);			
+			int statusQuark = ssq.getQuarkRelative(entry.getNodeQuark(), Attributes.STATE);
 			List<ITmfStateInterval> statusIntervals = ssq.queryHistoryRange(statusQuark, startTime, endTime - 1,
 					resolution, monitor);
-			
+
 			//FIXME
 			//System.out.println("Querying for quark=" + entry.getNodeQuark() + "statusQuark=" + statusQuark + " intervals=" + statusIntervals.size() + " between startTime=" + startTime + " endTime=" + (endTime - 1) );
 			//if (statusIntervals.size() > 1) {
 			//	System.out.println("This entry is greater than one interval "+ entry);
 			//}
-			
+
 			eventList = new ArrayList<ITimeEvent>(statusIntervals.size());
 			long lastEndTime = -1;
 			for (ITmfStateInterval statusInterval : statusIntervals) {
@@ -1181,6 +1191,7 @@ public class StateFlowView extends TmfView {
 				try {
 					stateIndex = statusInterval.getStateValue().unboxInt();
 				} catch (StateValueTypeException e) {
+					System.err.println("StateValueTypeException " + e.getMessage());
 					e.printStackTrace();
 				}
 
@@ -1257,6 +1268,7 @@ public class StateFlowView extends TmfView {
 				if (fTimeGraphCombo.isDisposed()) {
 					return;
 				}
+				fTimeGraphCombo.setTimeGraphProvider(fStateFlowPresentationProvider);
 				fTimeGraphCombo.redraw();
 				fTimeGraphCombo.update();
 				synchronized (fSyncObj) {

@@ -11,21 +11,55 @@
 package org.eclipse.linuxtools.tmf.core.statesystem;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map.Entry;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
 
+/**
+ * Singleton class that manages loading of instances of IStateSystemFactory that are provided
+ * by plugins through an extension point.  It does loading of interfaces on demand as needed,
+ * trying to defer plugin loading if possible
+ * @author Aaron Spear
+ * @since 2.0
+ */
 public class StateSystemFactoryManager {
 
-    private static final String STATE_SYSTEM_FACTORY_EXTENSION = "org.eclipse.linuxtools.tmf.ui.statesystemfactory";
-    private static final String STATE_SYSTEM_TYPE_CHILD = "type";
-    private static final String STATE_SYSTEM_CLASS_ATTRIBUTE = "class";
-    private static final String STATE_SYSTEM_ID_ATTRIBUTE = "id";
+    private static final String STATE_SYSTEM_FACTORY_EXTENSION = "org.eclipse.linuxtools.tmf.ui.statesystemfactory"; //$NON-NLS-1$
+    private static final String STATE_SYSTEM_TYPE_CHILD = "type"; //$NON-NLS-1$
+    private static final String STATE_SYSTEM_CLASS_ATTRIBUTE = "class"; //$NON-NLS-1$
+    private static final String STATE_SYSTEM_ID_ATTRIBUTE = "state_system_id"; //$NON-NLS-1$
 
-    private List<IStateSystemFactory>  allStateSystemFactories = null;
+    private static class FactoryContainer {
+        IConfigurationElement configElement=null;
+        IStateSystemFactory   stateSystemFactory=null;
+
+        FactoryContainer(IConfigurationElement configElement) {
+            this.configElement = configElement;
+            stateSystemFactory=null;
+        }
+        /**
+         * demand loads the factory from the configuration element as needed
+         * @return
+         */
+        IStateSystemFactory getFactory() {
+            if (stateSystemFactory == null) {
+                try {
+                    //instantiate the factory class
+                    stateSystemFactory = ((IStateSystemFactory)configElement.createExecutableExtension(STATE_SYSTEM_CLASS_ATTRIBUTE));
+                }catch(CoreException e) {
+                    e.printStackTrace(); //TODO better logging
+                }
+            }
+            return stateSystemFactory;
+        }
+    }
+
+    private LinkedHashMap<String,FactoryContainer> idToFactoryMap = null;
 
     private static final StateSystemFactoryManager INSTANCE = new StateSystemFactoryManager();
 
@@ -44,9 +78,13 @@ public class StateSystemFactoryManager {
      */
     public List<IStateSystemFactory> getFactoriesForTrace( ITmfTrace trace ) {
 
-        List<IStateSystemFactory> returnList = new ArrayList<IStateSystemFactory>(allStateSystemFactories.size());
-        for (IStateSystemFactory f : allStateSystemFactories) {
-            if (f.canCreateStateSystem(trace)) {
+        loadExtensions();
+
+        List<IStateSystemFactory> returnList = new ArrayList<IStateSystemFactory>(idToFactoryMap.size());
+
+        for (Entry<String,FactoryContainer> entry : idToFactoryMap.entrySet()) {
+            IStateSystemFactory f = entry.getValue().getFactory();
+            if (f != null && f.canCreateStateSystem(trace)) {
                 returnList.add(f);
             }
         }
@@ -54,16 +92,17 @@ public class StateSystemFactoryManager {
     }
 
     /**
-     * get a particular factory by its unique id
+     * get a particular factory by its unique id.
      * @param factoryId string unique id for the factory
      * @return the factory that matches the given id or null if not found
      */
     public IStateSystemFactory getFactoryById( final String factoryId ) {
 
-        for (IStateSystemFactory f : allStateSystemFactories) {
-            if (f.getStateSystemId().equals(factoryId)) {
-                return f;
-            }
+        loadExtensions();
+
+        FactoryContainer factoryContainer = idToFactoryMap.get(factoryId);
+        if (factoryContainer != null) {
+            return factoryContainer.getFactory();
         }
         return null;
     }
@@ -72,22 +111,27 @@ public class StateSystemFactoryManager {
      * private constructor, this is a singleton
      */
     private StateSystemFactoryManager() {
-        loadFactoriesFromExtensionPoint();
     }
 
-    private void loadFactoriesFromExtensionPoint() {
-        allStateSystemFactories = new ArrayList<IStateSystemFactory>();
+    /**
+     * iterates all config elements that implement the given extension point cataloging them
+     * Note that actual creation of the extension interface is done on demand
+     */
+    private synchronized void loadExtensions() {
+
+        if (idToFactoryMap != null) {
+            //already loaded
+            return;
+        }
+
         IConfigurationElement[] configElems = Platform.getExtensionRegistry().getConfigurationElementsFor(STATE_SYSTEM_FACTORY_EXTENSION);
+
+        idToFactoryMap = new LinkedHashMap<String,FactoryContainer>(configElems.length);
+
         for (IConfigurationElement configCE : configElems) {
             if (configCE.getName().equals(STATE_SYSTEM_TYPE_CHILD)) {
-                //String id = configCE.getAttribute(STATE_SYSTEM_ID_ATTRIBUTE);
-                //String klass = configCE.getAttribute(STATE_SYSTEM_CLASS_ATTRIBUTE);
-                try {
-                    //instantiate the factory class
-                    allStateSystemFactories.add((IStateSystemFactory)configCE.createExecutableExtension(STATE_SYSTEM_CLASS_ATTRIBUTE));
-                }catch(CoreException e) {
-                    e.printStackTrace(); //TODO better logging
-                }
+                String id = configCE.getAttribute(STATE_SYSTEM_ID_ATTRIBUTE);
+                idToFactoryMap.put(id, new FactoryContainer(configCE));
             }
         }
     }

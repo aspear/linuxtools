@@ -12,20 +12,16 @@
 
 package org.eclipse.linuxtools.tmf.stateflow.core.trace;
 
-import java.io.File;
+import java.io.InputStream;
 
 import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IResource;
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.linuxtools.ctf.core.trace.CTFReaderException;
 import org.eclipse.linuxtools.ctf.core.trace.CTFTrace;
-import org.eclipse.linuxtools.internal.tmf.stateflow.core.stateprovider.CtfExecutionStateInput;
-import org.eclipse.linuxtools.tmf.core.TmfCommonConstants;
+import org.eclipse.linuxtools.internal.tmf.stateflow.core.stateprovider.XmlDataDrivenStateSystemFactory;
 import org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfTrace;
 import org.eclipse.linuxtools.tmf.core.exceptions.TmfTraceException;
-import org.eclipse.linuxtools.tmf.core.statesystem.IStateChangeInput;
 import org.eclipse.linuxtools.tmf.core.statesystem.ITmfStateSystem;
-import org.eclipse.linuxtools.tmf.core.statesystem.StateSystemManager;
+import org.eclipse.linuxtools.tmf.stateflow.ui.Activator;
 
 /**
  * This is the specification of CtfTmfTrace for use with LTTng 2.x kernel
@@ -57,7 +53,7 @@ public class CtfExecutionTrace extends CtfTmfTrace {
     @Override
     public boolean validate(final IProject project, final String path) {
         CTFTrace temp;
-        
+
         // Make sure the trace is openable as a CTF trace. We do this here
         // instead of calling super.validate() to keep the reference to "temp".
         try {
@@ -66,38 +62,35 @@ public class CtfExecutionTrace extends CtfTmfTrace {
             return false;
         }
 
-        //Make sure the domain is "ust" in the trace's env vars as it is what is 
+        //Make sure the domain is "ust" in the trace's env vars as it is what is
         // used for the execution tracing.  TODO figure out some other annotation in the metadata
         // that uniquely identifies the execution tracing
         String dom = temp.getEnvironment().get("domain"); //$NON-NLS-1$
         if (dom != null && dom.equals("\"ust\"")) { //$NON-NLS-1$
             return true;
         }
-        return false;        
+        return false;
     }
 
     @Override
     protected void buildStateSystem() throws TmfTraceException {
-        super.buildStateSystem();
 
-        /*
-        // Set up the path to the history tree file we'll use 
-        IResource resource = this.getResource();
-        String supplDirectory = null;
+    	// the super class implementation of buildStateSystem uses a factory method which purely analyzes the
+    	// file system to figure out which state system factory to use.  We already know which one to use here,
+    	// and so there is no need to use this.  Additionally we want to use the schema file included in the
+    	// plugin so that the user doesn't have to provide one with every trace which is annoying.
+    	InputStream schemaXmlInputStream = Activator.getResource("resources/execution-trace.state-schema.xml");
+    	if (schemaXmlInputStream != null) {
+    		 XmlDataDrivenStateSystemFactory factory = new XmlDataDrivenStateSystemFactory();
+    		 ITmfStateSystem ss = factory.createStateSystem(this,schemaXmlInputStream);
+             if (ss != null) {
+                 fStateSystems.put(factory.getStateSystemId(), ss);
+                 return;
+             }
+    	}
 
-        try {
-            // get the directory where the history file will be stored.
-            supplDirectory = resource.getPersistentProperty(TmfCommonConstants.TRACE_SUPPLEMENTARY_FOLDER);
-        } catch (CoreException e) {
-            throw new TmfTraceException(e.toString(), e);
-        }
-
-        final File htFile = new File(supplDirectory + File.separator + HISTORY_TREE_FILE_NAME);
-        final IStateChangeInput htInput = new CtfExecutionStateInput(this);
-
-        ITmfStateSystem ss = StateSystemManager.loadStateHistory(htFile, htInput, false);
-        fStateSystems.put(STATE_ID, ss);
-        */
+    	// default behavior, call the super class
+    	super.buildStateSystem();
     }
 
 }

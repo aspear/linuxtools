@@ -51,7 +51,7 @@
          </documentation>
       </annotation>
       <complexType>
-         <attribute name="id" type="string" use="required">
+         <attribute name="state_system_id" type="string" use="required">
             <annotation>
                <documentation>
                   id of the state system type produced by this factory

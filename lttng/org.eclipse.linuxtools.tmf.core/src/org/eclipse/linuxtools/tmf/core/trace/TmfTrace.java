@@ -309,17 +309,20 @@ public abstract class TmfTrace extends TmfEventProvider implements ITmfTrace {
     @SuppressWarnings("unused")
     protected void buildStateSystem() throws TmfTraceException {
 
-        /** derived classes may overload this method to specify dedicated state system behavior.
+        /**
+         * derived classes may overload this method to specify dedicated state
+         * system behavior.
          *
-         * The base class does now optionally allow "mixing in" an implementation of a state provider
-         * that can come from other plugins.  To do this we get a list of factories that support
-         * this particular trace instance.
+         * The base class does now optionally allow "mixing in" an
+         * implementation of a state provider that can come from other plugins.
+         * To do this we get a list of factories that support this particular
+         * trace instance.
          */
         IResource resource = this.getResource();
         String selectedStateFactoryId = null;
 
         try {
-            // get the desired state factory id if it exists
+            // get the property that has the id of the selected state factory if it exists
             selectedStateFactoryId = resource.getPersistentProperty(TmfCommonConstants.TRACE_SELECTED_STATE_PROVIDER);
         } catch (CoreException e) {
             throw new TmfTraceException(e.toString(), e);
@@ -328,13 +331,17 @@ public abstract class TmfTrace extends TmfEventProvider implements ITmfTrace {
         IStateSystemFactory selectedStateFactory = null;
 
         if (selectedStateFactoryId != null) {
+            // get the factory by string id
             selectedStateFactory = StateSystemFactoryManager.getInstance().getFactoryById(selectedStateFactoryId);
         } else {
-            // get the list of all factories that work for this particular trace.
+            // There is no factory selected in the preference.  Get the list of all factories
+            // that advertise working for this particular trace
             List<IStateSystemFactory> availableStateSystemFactories = StateSystemFactoryManager.getInstance().getFactoriesForTrace(this);
             if (availableStateSystemFactories.size() > 0) {
-                //TODO we need a mechanism to select this if we need to support the case of there being multiple possibilities.  assume for now
-                //that there will only be one
+                // TODO we need a mechanism to allow the user to select which
+                // factory they want to use in the case that there are multiple
+                // that will work.  This is probably a rare use case anyway, so
+                // simply select the first one for nows
                 selectedStateFactory = availableStateSystemFactories.get(0);
             }
         }
@@ -344,7 +351,7 @@ public abstract class TmfTrace extends TmfEventProvider implements ITmfTrace {
                 fStateSystems.put(selectedStateFactory.getStateSystemId(), ss);
                 try {
                     resource.setPersistentProperty(TmfCommonConstants.TRACE_SELECTED_STATE_PROVIDER, selectedStateFactory.getStateSystemId());
-                }catch(CoreException e) {
+                } catch (CoreException e) {
                     throw new TmfTraceException(e.toString(), e);
                 }
             }

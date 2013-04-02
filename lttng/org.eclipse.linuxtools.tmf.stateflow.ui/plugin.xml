@@ -49,11 +49,13 @@
          </eventsTableType>
       </type>
    </extension>
-    <extension 
-         point="org.eclipse.linuxtools.tmf.ui.statesystemfactory">
+    <extension
+          id="org.eclipse.linuxtools.internal.tmf.stateflow.core.stateprovider.XmlDataDrivenStateSystemFactory"
+          name="XML data driven state system factory"
+          point="org.eclipse.linuxtools.tmf.ui.statesystemfactory">
          <type
-         	id="org.eclipse.linuxtools.tmf.stateflow.datadrivenstate"         	
-         	class="org.eclipse.linuxtools.internal.tmf.stateflow.core.stateprovider.XmlDataDrivenStateInputFactory">
+         	state_system_id="org.eclipse.linuxtools.internal.tmf.stateflow.core.stateprovider.datadriven"         	
+         	class="org.eclipse.linuxtools.internal.tmf.stateflow.core.stateprovider.XmlDataDrivenStateSystemFactory">
          </type>
     </extension>
 

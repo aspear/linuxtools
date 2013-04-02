@@ -1,3 +1,12 @@
+/*******************************************************************************
+ * Copyright (c) 2013 VMware Inc.
+ *
+ * All rights reserved. This program and the accompanying materials are
+ * made available under the terms of the Eclipse Public License v1.0 which
+ * accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ *******************************************************************************/
 package org.eclipse.linuxtools.internal.tmf.stateflow.core.stateprovider;
 
 import java.util.Map;
@@ -13,16 +22,17 @@ import org.eclipse.linuxtools.tmf.core.statevalue.ITmfStateValue;
 import org.eclipse.linuxtools.tmf.core.statevalue.TmfStateValue;
 import org.eclipse.swt.graphics.RGB;
 
-/*
-TODO refactor this class into a separate builder that creates it using the XML data so that this
-container can be reused for non XML driven versions
-
+/**
+ * Implementation of IStateSystemPresentationInfo that is driven by a set of
+ * data structures that are supplied by a builder which takes them from a particular
+ * format (e.g. XML)
+ * @author Aaron Spear
  */
 public class StateSystemPresentationInfo implements IStateSystemPresentationInfo {
-			
+
 	/**
-	 * class to represent the logic to extract a value from an event field.  The 
-	 * value can be hard coded (in which case the event fields don't matter), or can come from a 
+	 * class to represent the logic to extract a value from an event field.  The
+	 * value can be hard coded (in which case the event fields don't matter), or can come from a
 	 * regex executed on the field
 	 * @author aspear
 	 *
@@ -31,7 +41,7 @@ public class StateSystemPresentationInfo implements IStateSystemPresentationInfo
 		private final String fieldName;
 	    private final Pattern fieldRegexPattern;
 		private final String fixedValue;
-		
+
 		/**
 		 * construct an EventValue that uses a fieldName and optional regex
 		 * @param fieldName the field name to extract from the event
@@ -67,14 +77,14 @@ public class StateSystemPresentationInfo implements IStateSystemPresentationInfo
 		public String getValue( ITmfEvent event ) {
             if (fixedValue != null) {
             	return fixedValue;
-            }            
-            // need to extract teh field value	
+            }
+            // need to extract teh field value
     		ITmfEventField field = event.getContent().getField(fieldName);
     		if (field == null) {
     			//this is an error condition TODO logging
     			return null;
-    		}		
-    		
+    		}
+
     		// TODO smarter type conversion?
     		String fieldValueString = field.getValue().toString();
     		if (fieldValueString == null) {
@@ -82,7 +92,7 @@ public class StateSystemPresentationInfo implements IStateSystemPresentationInfo
     			// TODO logging
     			return null;
     		}
-    		
+
 			if (fieldRegexPattern != null) {
             	Matcher matcher = fieldRegexPattern.matcher(fieldValueString);
             	if (matcher.matches()) {
@@ -91,31 +101,33 @@ public class StateSystemPresentationInfo implements IStateSystemPresentationInfo
             	return null;
             } else {
             	return fieldValueString.trim();
-            }           
-		}		
-	}
-	
-	static class StateChangeInfo {
-	    private final EventFieldValue stateValue;
-		
-		public StateChangeInfo(final EventFieldValue stateValue) {
-			this.stateValue = stateValue;
-		}		
-	
-		public String getState( ITmfEvent event ) {
-			return stateValue.getValue(event);          
+            }
 		}
 	}
-	
+
+	static class StateChangeInfo {
+	    private final EventFieldValue stateValue;
+
+		public StateChangeInfo(final EventFieldValue stateValue) {
+			this.stateValue = stateValue;
+		}
+
+		public String getState( ITmfEvent event ) {
+			return stateValue.getValue(event);
+		}
+	}
+
 	static class ContextInfo {
 		private final EventFieldValue[] hierarchyContextValues;
-		
-		public ContextInfo(final EventFieldValue[] hierarchyContextValues) {
+		private final EventFieldValue previousContextStateValue;
+
+		public ContextInfo(final EventFieldValue[] hierarchyContextValues, final EventFieldValue previousContextStateValue ) {
 			this.hierarchyContextValues = hierarchyContextValues;
-		}		
-				
+			this.previousContextStateValue = previousContextStateValue;
+		}
+
 		public String[] getContext( ITmfEvent event ) {
-			// if this even gets called then that means that this event has some context context, so allocate a new context			
+			// if this even gets called then that means that this event has some context context, so allocate a new context
 			String[] context = new String[hierarchyContextValues.length];
 			for (int c=0;c<hierarchyContextValues.length;++c) {
 				EventFieldValue contextValue = hierarchyContextValues[c];
@@ -127,14 +139,20 @@ public class StateSystemPresentationInfo implements IStateSystemPresentationInfo
 			}
 			return context;
 		}
+		public String getPreviousContextStateValue(ITmfEvent event ) {
+			if (previousContextStateValue != null) {
+				return previousContextStateValue.getValue(event);
+			}
+			return null;
+		}
 	}
-	
+
 	static class StatePresentationInfo implements IStatePresentationInfo {
 
-		private RGB 			stateColor;
-		private String 			stateString;
+		private final RGB 			stateColor;
+		private final String 			stateString;
 		private ITmfStateValue 	stateValue;
-		
+
 		public StatePresentationInfo(String stateString, RGB stateColor, int stateIndex) {
 			this.stateString = stateString;
 			this.stateColor = stateColor;
@@ -144,7 +162,7 @@ public class StateSystemPresentationInfo implements IStateSystemPresentationInfo
 				this.stateValue = TmfStateValue.nullValue();
 			}
 		}
-		
+
 		@Override
 		public String getStateString() {
 			return stateString;
@@ -153,26 +171,25 @@ public class StateSystemPresentationInfo implements IStateSystemPresentationInfo
 		@Override
 		public RGB getStateColor() {
 			return stateColor;
-		}		
-		
+		}
+
 		@Override
 		public ITmfStateValue getStateValue() {
 	    	return stateValue;
 		}
 	}
-		
-	
-	private Map<String,ContextInfo> 			eventTypeToSwitchContextMap;
-	private Map<String,ContextInfo> 			eventTypeToPushContextMap;
-	private Map<String,ContextInfo> 			eventTypeToPopContextMap;
-	
-	private Map<String,StateChangeInfo> 		eventTypeToStateChangeInfoMap;
-	private Map<String,IStatePresentationInfo>	stateStringToStateMap;
-	private IStatePresentationInfo[] 			states;	
-	private IStateSystemContextHierarchyInfo[] 	contextHierarchy;
-		
+
+	private final Map<String,ContextInfo> 			eventTypeToSwitchContextMap;
+	private final Map<String,ContextInfo> 			eventTypeToPushContextMap;
+	private final Map<String,ContextInfo> 			eventTypeToPopContextMap;
+
+	private final Map<String,StateChangeInfo> 			eventTypeToStateChangeInfoMap;
+	private final Map<String,IStatePresentationInfo>	stateStringToStateMap;
+	private final IStatePresentationInfo[] 				states;
+	private final IStateSystemContextHierarchyInfo[] 	contextHierarchy;
+
 	public StateSystemPresentationInfo(
-			
+
 			Map<String,ContextInfo> 			eventTypeToSwitchContextMap,
 			Map<String,ContextInfo> 			eventTypeToPushContextMap,
 			Map<String,ContextInfo> 			eventTypeToPopContextMap,
@@ -180,25 +197,16 @@ public class StateSystemPresentationInfo implements IStateSystemPresentationInfo
 			Map<String,IStatePresentationInfo>	stateStringToStateMap,
 			IStatePresentationInfo[] 			states,
 			IStateSystemContextHierarchyInfo[]  contextHierarchy) {
-		
+
 		this.eventTypeToSwitchContextMap = eventTypeToSwitchContextMap;
 		this.eventTypeToPushContextMap   = eventTypeToPushContextMap;
-		this.eventTypeToPopContextMap    = eventTypeToPopContextMap;		
+		this.eventTypeToPopContextMap    = eventTypeToPopContextMap;
 		this.eventTypeToStateChangeInfoMap = eventTypeToStateChangeInfoMap;
 		this.stateStringToStateMap = stateStringToStateMap;
-		this.states = states;	
-		this.contextHierarchy = contextHierarchy;		
-	}	
-	
-	/**
-	 * get all states supported for this context
-	 * @return
-	 */
-	//public final IStatePresentationInfo[] getAllStates() {
-	//	return states;
-	//}
-	
-		
+		this.states = states;
+		this.contextHierarchy = contextHierarchy;
+	}
+
 	@Override
 	public IStatePresentationInfo getPresentationForStateValue(ITmfStateValue stateValue) {
 		return stateStringToStateMap.get(stateValue.toString());
@@ -214,34 +222,33 @@ public class StateSystemPresentationInfo implements IStateSystemPresentationInfo
 		return states;
 	}
 
-	@Override
-	public String[] getSwitchContext( String eventTypeName, ITmfEvent event ) {						
-		ContextInfo contextChangeInfo = eventTypeToSwitchContextMap.get(eventTypeName);
-		if (contextChangeInfo != null) {			
-			return contextChangeInfo.getContext(event);
-		}
-		return null;
-	}
-	@Override
-	public String[] getPushContext(String eventTypeName, ITmfEvent event) {
-		ContextInfo contextChangeInfo = eventTypeToPushContextMap.get(eventTypeName);
-		if (contextChangeInfo != null) {			
-			return contextChangeInfo.getContext(event);
+	private ContextChangeInfo getContextChangeInfo(final ContextInfo contextChangeInfo, final String eventTypeName, final ITmfEvent event ) {
+		if (contextChangeInfo != null) {
+			String[] id = contextChangeInfo.getContext(event);
+			if (id != null) {
+				String updatedPreviousContextStateString = contextChangeInfo.getPreviousContextStateValue(event);
+				return new ContextChangeInfo(id,stateStringToStateMap.get(updatedPreviousContextStateString));
+			}
 		}
 		return null;
 	}
 
 	@Override
-	public String[] getPopContext(String eventTypeName, ITmfEvent event) {
-		ContextInfo contextChangeInfo = eventTypeToPopContextMap.get(eventTypeName);
-		if (contextChangeInfo != null) {			
-			return contextChangeInfo.getContext(event);
-		}		
-		return null;
+	public ContextChangeInfo getSwitchContext( String eventTypeName, ITmfEvent event ) {
+		return getContextChangeInfo(eventTypeToSwitchContextMap.get(eventTypeName),eventTypeName,event);
 	}
-	
 	@Override
-	public IStatePresentationInfo getNewState( String eventTypeName, ITmfEvent event ) {			
+	public ContextChangeInfo getPushContext(String eventTypeName, ITmfEvent event) {
+		return getContextChangeInfo(eventTypeToPushContextMap.get(eventTypeName),eventTypeName,event);
+	}
+
+	@Override
+	public ContextChangeInfo getPopContext(String eventTypeName, ITmfEvent event) {
+		return getContextChangeInfo(eventTypeToPopContextMap.get(eventTypeName),eventTypeName,event);
+	}
+
+	@Override
+	public IStatePresentationInfo getNewState( String eventTypeName, ITmfEvent event ) {
 		StateChangeInfo stateChangeInfo = eventTypeToStateChangeInfoMap.get(eventTypeName);
 		if (stateChangeInfo != null) {
 			// get the string for the new state
@@ -249,9 +256,8 @@ public class StateSystemPresentationInfo implements IStateSystemPresentationInfo
 			if (newStateString != null) {
 				return stateStringToStateMap.get(newStateString);
 			}
-		}	
+		}
 		return null;
 	}
-	
-	
+
 }
