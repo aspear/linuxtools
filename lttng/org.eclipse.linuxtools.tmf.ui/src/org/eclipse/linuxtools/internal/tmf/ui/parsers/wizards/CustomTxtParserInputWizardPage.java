@@ -1361,7 +1361,8 @@ public class CustomTxtParserInputWizardPage extends WizardPage {
             tagCombo = new Combo(tagComposite, SWT.DROP_DOWN | SWT.READ_ONLY);
             tagCombo.setItems(new String[] {CustomTraceDefinition.TAG_TIMESTAMP,
                                             CustomTraceDefinition.TAG_MESSAGE,
-                                            CustomTraceDefinition.TAG_OTHER});
+                                            CustomTraceDefinition.TAG_OTHER,
+                                            CustomTraceDefinition.TAG_EVENT_TYPE});
             tagCombo.select(1);
             tagCombo.addSelectionListener(new SelectionListener(){
             	@Override
@@ -1386,7 +1387,11 @@ public class CustomTxtParserInputWizardPage extends WizardPage {
                         tagText.setVisible(true);
                         tagText.addModifyListener(updateListener);
                         break;
-                    case 3: //Continue
+                    case 3: //event type
+                        tagLabel.setVisible(false);
+                        tagText.setVisible(false);
+                        break;
+                    case 4: //Continue
                         tagLabel.setVisible(false);
                         tagText.setVisible(false);
                         break;

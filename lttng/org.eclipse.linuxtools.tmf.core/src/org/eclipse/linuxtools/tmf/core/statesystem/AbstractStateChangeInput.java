@@ -52,6 +52,10 @@ public abstract class AbstractStateChangeInput implements IStateChangeInput {
     /** State system in which to insert the state changes */
     protected ITmfStateSystemBuilder ss = null;
 
+    /** optional state presentation information that may be provided by derived objects.  They must do so
+     * in their constructors if so. */
+    protected IStateSystemPresentationInfo  statePresentationInfo = null;
+
     /**
      * Instantiate a new state provider plugin.
      *
@@ -88,6 +92,10 @@ public abstract class AbstractStateChangeInput implements IStateChangeInput {
     @Override
     public void assignTargetStateSystem(ITmfStateSystemBuilder ssb) {
         ss = ssb;
+
+        // constructor has already been called which presumably sets up this member
+        ssb.setStatePresentationInfo(statePresentationInfo);
+
         ssAssigned = true;
         eventHandlerThread.start();
     }
@@ -204,6 +212,11 @@ public abstract class AbstractStateChangeInput implements IStateChangeInput {
                 e.printStackTrace();
             }
         }
+    }
+
+    @Override
+    public IStateSystemPresentationInfo  getStatePresentationInfo() {
+        return statePresentationInfo;
     }
 
     // ------------------------------------------------------------------------

@@ -5,9 +5,10 @@
  * made available under the terms of the Eclipse Public License v1.0 which
  * accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- * 
+ *
  * Contributors:
  *   Bernd Hufmann - Initial API and implementation
+*    Aaron Spear - Added constant for data driven state providers
  *******************************************************************************/
 package org.eclipse.linuxtools.tmf.core;
 
@@ -15,7 +16,7 @@ import org.eclipse.core.runtime.QualifiedName;
 
 /**
  *  This class provides a common container for TMF constants.
- *  
+ *
  * @version 1.0
  *  @author Bernd Hufmann
  */
@@ -24,7 +25,7 @@ public class TmfCommonConstants {
     // ------------------------------------------------------------------------
     // Constants
     // ------------------------------------------------------------------------
-    
+
     /**
      * The trace type bundle persistent property of a trace resource.
      */
@@ -41,9 +42,15 @@ public class TmfCommonConstants {
      * The supplementary folder name persistent property of a trace resource.
      */
     public static final QualifiedName TRACE_SUPPLEMENTARY_FOLDER = new QualifiedName("org.eclipse.linuxtools.tmf", "trace.suppl.folder"); //$NON-NLS-1$//$NON-NLS-2$
+
     /**
-     * The name of the parent folder for storing trace specific supplementary data. Each trace will have a sub-directory underneath with folder name equal to the trace name.    
+     * A persistent property that tracks the selected state provider for a given trace
+     */
+    public static final QualifiedName TRACE_SELECTED_STATE_PROVIDER = new QualifiedName("org.eclipse.linuxtools.tmf.stateprovider", "trace.state.provider"); //$NON-NLS-1$//$NON-NLS-2$
+
+    /**
+     * The name of the parent folder for storing trace specific supplementary data. Each trace will have a sub-directory underneath with folder name equal to the trace name.
      */
     public static final String TRACE_SUPPLEMENATARY_FOLDER_NAME = ".tracing"; //$NON-NLS-1$
-    
+
 }

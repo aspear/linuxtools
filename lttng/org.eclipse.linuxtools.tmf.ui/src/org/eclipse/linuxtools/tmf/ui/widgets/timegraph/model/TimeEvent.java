@@ -12,6 +12,8 @@
 
 package org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model;
 
+import org.eclipse.linuxtools.tmf.core.event.ITmfEvent;
+
 /**
  * Generic TimeEvent implementation
  *
@@ -64,4 +66,10 @@ public class TimeEvent implements ITimeEvent {
     public String toString() {
         return "TimeEvent start=" + fTime + " end=" + (fTime + fDuration) + " duration=" + fDuration; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
     }
+
+    @Override
+    public ITmfEvent getTmfEvent() {
+         return null;
+    }
+
 }
