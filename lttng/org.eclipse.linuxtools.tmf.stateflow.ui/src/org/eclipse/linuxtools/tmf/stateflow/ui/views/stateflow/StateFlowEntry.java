@@ -1,5 +1,6 @@
 /*******************************************************************************
  * Copyright (c) 2012 Ericsson
+ * Copyright (c) 2013 VMware Inc.
  *
  * All rights reserved. This program and the accompanying materials are
  * made available under the terms of the Eclipse Public License v1.0 which
@@ -8,6 +9,7 @@
  *
  * Contributors:
  *   Patrick Tasse - Initial API and implementation
+ *   Aaron Spear - Cloned and refactored for data driven state flow
  *******************************************************************************/
 
 package org.eclipse.linuxtools.tmf.stateflow.ui.views.stateflow;
@@ -18,7 +20,6 @@ import java.util.List;
 
 import org.eclipse.linuxtools.internal.tmf.stateflow.views.common.EventIterator;
 import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
-import org.eclipse.linuxtools.tmf.stateflow.core.trace.CtfExecutionTrace;
 import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.ITimeEvent;
 import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.ITimeGraphEntry;
 
@@ -92,10 +93,10 @@ public class StateFlowEntry implements ITimeGraphEntry {
     public String getName() {
         return fName;
     }
-    
+
     public String getContextInfo() {
         return fContextInfo;
-    }    
+    }
 
     @Override
     public long getStartTime() {
@@ -148,7 +149,7 @@ public class StateFlowEntry implements ITimeGraphEntry {
    // public int getThreadId() {
    //     return fThreadId;
    // }
-    
+
     public int getParentQuark() {
         return fParentQuark;
     }
@@ -213,7 +214,7 @@ public class StateFlowEntry implements ITimeGraphEntry {
         child.fParent = this;
         fChildren.add(child);
     }
-    
+
     @Override
     public String toString() {
     	StringBuilder result = new StringBuilder(100);

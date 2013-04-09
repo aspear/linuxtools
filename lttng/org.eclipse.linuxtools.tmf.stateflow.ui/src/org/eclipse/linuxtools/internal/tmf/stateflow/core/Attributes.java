@@ -8,6 +8,8 @@
  *
  * Contributors:
  *   Alexandre Montplaisir - Initial API and implementation
+ *
+ *   Aaron Spear - Cloned and changed all values for data driven state flow
  ******************************************************************************/
 
 package org.eclipse.linuxtools.internal.tmf.stateflow.core;
@@ -26,42 +28,19 @@ package org.eclipse.linuxtools.internal.tmf.stateflow.core;
  */
 @SuppressWarnings({"nls", "javadoc"})
 public abstract class Attributes {
-	
+
 	public static final String STATE = "DDState";
-	
+
 	/**
 	 * @deprecated
 	 */
-	public static final String THREADS = "Threads"; 
-	
+	@Deprecated
+	public static final String THREADS = "Threads";
+
 	/**
 	 * @deprecated
 	 */
+	@Deprecated
 	public static final String METHODS = "Methods";
-	
-	 // Sub-attributes
-    //public static final String STATUS = "Status";
 
-    /*//First-level attributes 
-    public static final String CPUS = "CPUs";
-    public static final String THREADS = "Threads";
-    public static final String RESOURCES = "Resources";
-
-    // Sub-attributes of the CPU nodes 
-    public static final String CURRENT_THREAD = "Current_thread";
-    public static final String STATUS = "Status";
-
-    // Sub-attributes of the Thread nodes 
-    public static final String PPID = "PPID";
-    //public static final String STATUS = "Status"
-    public static final String EXEC_NAME = "Exec_name";
-    public static final String SYSTEM_CALL = "System_call";
-
-    //Attributes under "Resources" 
-    public static final String IRQS = "IRQs";
-    public static final String SOFT_IRQS = "Soft_IRQs";
-
-    // Misc stuff 
-    public static final String UNKNOWN = "Unknown";
-    */
 }

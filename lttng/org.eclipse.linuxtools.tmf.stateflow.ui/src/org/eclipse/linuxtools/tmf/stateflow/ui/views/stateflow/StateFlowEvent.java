@@ -1,5 +1,6 @@
 /*******************************************************************************
  * Copyright (c) 2012 Ericsson
+ * Copyright (c) 2013 VMware Inc.
  *
  * All rights reserved. This program and the accompanying materials are
  * made available under the terms of the Eclipse Public License v1.0 which
@@ -8,11 +9,11 @@
  *
  * Contributors:
  *   Patrick Tasse - Initial API and implementation
+ *   Aaron Spear - Cloned and refactored for data driven state flow
  *******************************************************************************/
 
 package org.eclipse.linuxtools.tmf.stateflow.ui.views.stateflow;
 
-import org.eclipse.linuxtools.tmf.core.statevalue.ITmfStateValue;
 import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.ITimeGraphEntry;
 import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.TimeEvent;
 

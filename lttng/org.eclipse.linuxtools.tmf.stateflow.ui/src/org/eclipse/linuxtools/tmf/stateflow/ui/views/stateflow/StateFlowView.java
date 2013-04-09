@@ -1,6 +1,6 @@
 /*******************************************************************************
  * Copyright (c) 2012 Ericsson
- * Copyright (c) 2013 VMware
+ * Copyright (c) 2013 VMware Inc.
  *
  * All rights reserved. This program and the accompanying materials are
  * made available under the terms of the Eclipse Public License v1.0 which
@@ -53,7 +53,6 @@ import org.eclipse.linuxtools.tmf.core.timestamp.TmfTimeRange;
 import org.eclipse.linuxtools.tmf.core.timestamp.TmfTimestamp;
 import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
 import org.eclipse.linuxtools.tmf.core.trace.TmfExperiment;
-import org.eclipse.linuxtools.tmf.stateflow.core.trace.CtfExecutionTrace;
 import org.eclipse.linuxtools.tmf.stateflow.util.StringUtils;
 import org.eclipse.linuxtools.tmf.ui.editors.ITmfTraceEditor;
 import org.eclipse.linuxtools.tmf.ui.views.TmfView;
@@ -698,131 +697,6 @@ public class StateFlowView extends TmfView {
 		});
 	}
 
-	private void buildEventListForCtfExecutionTrace(CtfExecutionTrace ctfExecutionTrace, IProgressMonitor monitor,
-			ArrayList<StateFlowEntry> rootList) {
-		fStartTime = Long.MAX_VALUE;
-		fEndTime = Long.MIN_VALUE;
-
-		ArrayList<StateFlowEntry> entryList = new ArrayList<StateFlowEntry>();
-		ITmfStateSystem ssq = ctfExecutionTrace.getStateSystem(CtfExecutionTrace.STATE_ID);
-		if (!ssq.waitUntilBuilt()) {
-			return;
-		}
-		long start = ssq.getStartTime();
-		long end = ssq.getCurrentEndTime() + 1;
-		fStartTime = Math.min(fStartTime, start);
-		fEndTime = Math.max(fEndTime, end);
-
-		// FIXME there must be some better way to iterate and get the quarks
-		// than what I am doing here
-
-		List<Integer> threadQuarks = ssq.getQuarks(Attributes.THREADS, "*"); //$NON-NLS-1$
-		for (Integer threadQuark : threadQuarks) {
-			String threadName = ssq.getAttributeName(threadQuark);
-
-			if (threadName.equals(Attributes.STATE)) {
-				continue;
-			}
-
-			// munge together a flow entry for the thread itself. Note
-			// that the parent of this one is -1
-			StateFlowEntry threadEntry = new StateFlowEntry(threadQuark, ctfExecutionTrace, threadName, "", -1, start,
-					start, end);
-			entryList.add(threadEntry);
-			threadEntry.addEvent(new TimeEvent(threadEntry, start, end - start));
-
-			List<Integer> methodQuarks = ssq.getQuarks(Attributes.THREADS, threadName, "*");
-			for (Integer methodQuark : methodQuarks) {
-				String methodName = ssq.getAttributeName(methodQuark);
-
-				// methodName here includes the full class and everything. split
-				// it up so that we have class and method separate.
-				String className = "";
-				String execName = methodName;
-
-				// TODO make this data driven, coming from the state system
-				// perhaps
-				int methodDotIndex = methodName.lastIndexOf('.');
-				if (methodDotIndex != -1) {
-					int packageDotIndex = methodName.lastIndexOf('.', methodDotIndex - 1);
-					if (packageDotIndex != -1) {
-						execName = methodName.substring(packageDotIndex + 1);
-						className = methodName.substring(0, packageDotIndex);
-					} else {
-						execName = methodName.substring(methodDotIndex + 1);
-						className = methodName.substring(0, methodDotIndex);
-					}
-				}
-
-				long birthTime = -1;
-				List<Integer> statusQuarks = ssq
-						.getQuarks(Attributes.THREADS, threadName, methodName, Attributes.STATE);
-				for (Integer statusQuark : statusQuarks) {
-					if (monitor.isCanceled()) {
-						return;
-					}
-					String fullName = ssq.getFullAttributePath(statusQuark);
-
-					try {
-
-						List<ITmfStateInterval> methodIntervals = ssq.queryHistoryRange(statusQuark, start, end - 1); // use
-																														// monitor
-																														// when
-																														// available
-																														// in
-																														// api
-						if (monitor.isCanceled()) {
-							return;
-						}
-
-						// here we have a list of all instances of the method
-						// being called for this thread. We want to create ONE
-						// ExecutionFlowEntry
-						// for all of these calls so that it is drawn in the
-						// same row on the graph. Lets collect the start and end
-						// times of the method
-						// calls and scope the control flow entry to that. The
-						// actual states (running, not running) are done via the
-						// events contained
-						// within the entry
-						long methodStartTime = end;
-						long methodEndTime = start;
-						long methodBirthTime = -1;
-
-						for (ITmfStateInterval methodInterval : methodIntervals) {
-							if (monitor.isCanceled()) {
-								return;
-							}
-
-							methodStartTime = Math.min(methodStartTime, methodInterval.getStartTime());
-							methodEndTime = Math.max(methodEndTime, methodInterval.getEndTime() + 1);
-
-							if (methodBirthTime == -1) {
-								methodBirthTime = methodStartTime;
-							}
-						}
-						StateFlowEntry entry = new StateFlowEntry(methodQuark, ctfExecutionTrace, execName, className,
-								threadQuark, methodBirthTime, methodStartTime, methodEndTime);
-						entryList.add(entry);
-						entry.addEvent(new TimeEvent(entry, methodStartTime, methodEndTime - methodStartTime));
-
-					} catch (AttributeNotFoundException e) {
-						e.printStackTrace();
-					} catch (TimeRangeException e) {
-						e.printStackTrace();
-					} // catch (StateValueTypeException e) {
-						// e.printStackTrace();
-						// }
-					catch (StateSystemDisposedException e) {
-						/* Ignored */
-					}
-
-				}
-			}
-		}
-		buildTree(entryList, rootList);
-	}
-
 	private IStateSystemPresentationInfo getPresentationInfoForTrace(ITmfTrace trace) {
 		ITmfStateSystem ssq = trace.getStateSystem(DataDrivenStateInput.STATE_SYSTEM_ID);
 		if (ssq == null) {
@@ -1293,11 +1167,11 @@ public class StateFlowView extends TmfView {
 
 	private void makeActions() {
 		fPreviousResourceAction = fTimeGraphCombo.getTimeGraphViewer().getPreviousItemAction();
-		fPreviousResourceAction.setText(Messages.StateFlowView_previousProcessActionNameText);
-		fPreviousResourceAction.setToolTipText(Messages.StateFlowView_previousProcessActionToolTipText);
+		fPreviousResourceAction.setText(Messages.StateFlowView_previousObjectActionNameText);
+		fPreviousResourceAction.setToolTipText(Messages.StateFlowView_previousObjectActionToolTipText);
 		fNextResourceAction = fTimeGraphCombo.getTimeGraphViewer().getNextItemAction();
-		fNextResourceAction.setText(Messages.StateFlowView_nextProcessActionNameText);
-		fNextResourceAction.setToolTipText(Messages.StateFlowView_nextProcessActionToolTipText);
+		fNextResourceAction.setText(Messages.StateFlowView_nextObjectActionNameText);
+		fNextResourceAction.setToolTipText(Messages.StateFlowView_nextObjectActionToolTipText);
 	}
 
 	private void contributeToActionBars() {

@@ -6,6 +6,9 @@
  * accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  *
+ * Contributors:
+ *   Aaron Spear - Initial implementation
+ *
  *******************************************************************************/
 package org.eclipse.linuxtools.internal.tmf.stateflow.core.stateprovider;
 

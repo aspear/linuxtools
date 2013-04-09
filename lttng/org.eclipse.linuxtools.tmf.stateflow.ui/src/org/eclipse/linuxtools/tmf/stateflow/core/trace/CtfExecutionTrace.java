@@ -1,5 +1,6 @@
 /*******************************************************************************
  * Copyright (c) 2012 Ericsson
+ * Copyright (c) 2013 VMware Inc.
  *
  * All rights reserved. This program and the accompanying materials are
  * made available under the terms of the Eclipse Public License v1.0 which
@@ -8,6 +9,8 @@
  *
  * Contributors:
  *   Alexandre Montplaisir - Initial API and implementation
+ *   Aaron Spear - Cloned from LTTng and then refactored for generic execution
+ *                 trace
  ******************************************************************************/
 
 package org.eclipse.linuxtools.tmf.stateflow.core.trace;
