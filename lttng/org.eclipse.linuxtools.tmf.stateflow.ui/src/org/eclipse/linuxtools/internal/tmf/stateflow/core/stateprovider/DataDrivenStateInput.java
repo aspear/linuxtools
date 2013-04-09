@@ -19,15 +19,17 @@ import java.util.Stack;
 import org.eclipse.linuxtools.internal.tmf.stateflow.core.Attributes;
 import org.eclipse.linuxtools.tmf.core.event.ITmfEvent;
 import org.eclipse.linuxtools.tmf.core.event.ITmfEventType;
-import org.eclipse.linuxtools.tmf.core.event.ITmfTimestamp;
 import org.eclipse.linuxtools.tmf.core.exceptions.AttributeNotFoundException;
 import org.eclipse.linuxtools.tmf.core.statesystem.AbstractStateChangeInput;
+import org.eclipse.linuxtools.tmf.core.statesystem.IStateChangeInput;
 import org.eclipse.linuxtools.tmf.core.statesystem.IStatePresentationInfo;
 import org.eclipse.linuxtools.tmf.core.statesystem.IStateSystemContextHierarchyInfo;
+import org.eclipse.linuxtools.tmf.core.statesystem.IStateSystemPresentationInfo;
 import org.eclipse.linuxtools.tmf.core.statesystem.IStateSystemPresentationInfo.ContextChangeInfo;
 import org.eclipse.linuxtools.tmf.core.statesystem.ITmfStateSystemBuilder;
 import org.eclipse.linuxtools.tmf.core.statevalue.ITmfStateValue;
 import org.eclipse.linuxtools.tmf.core.statevalue.TmfStateValue;
+import org.eclipse.linuxtools.tmf.core.timestamp.ITmfTimestamp;
 import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
 
 /**
@@ -37,6 +39,8 @@ import org.eclipse.linuxtools.tmf.core.trace.ITmfTrace;
  *
  */
 public class DataDrivenStateInput extends AbstractStateChangeInput {
+
+	private static final int CURRENT_VERSION_NUMBER = 1;
 
 	public final static String STATE_SYSTEM_ID = "org.eclipse.linuxtools.internal.tmf.stateflow.core.stateprovider.datadriven";
 
@@ -293,7 +297,7 @@ public class DataDrivenStateInput extends AbstractStateChangeInput {
 
 	// ************************************************************************
 
-	public DataDrivenStateInput(StateSystemPresentationInfo statePresentationInfo, ITmfTrace trace,
+	public DataDrivenStateInput(IStateSystemPresentationInfo statePresentationInfo, ITmfTrace trace,
 			Class<? extends ITmfEvent> eventType, String id) {
 		super(trace, eventType, id);
 
@@ -502,5 +506,20 @@ public class DataDrivenStateInput extends AbstractStateChangeInput {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+
+	@Override
+	public int getVersion() {
+		return CURRENT_VERSION_NUMBER;
+	}
+
+	@Override
+	public IStateChangeInput getNewInstance() {
+		// Aaron FIXME note:
+		// I do not quite understand the newly introduced "partial history" functionality and what the implications are for a data
+		// driven state system.  In effect, I am not sure what it means yet for this class instance to clone itself.  It is
+		// probably OK since StateSystemPresentationInfo is immutable, but I am not honestly sure
+		return new DataDrivenStateInput(statePresentationInfo,getTrace(), getTrace().getEventType(),
+				DataDrivenStateInput.STATE_SYSTEM_ID);
 	}
 }
