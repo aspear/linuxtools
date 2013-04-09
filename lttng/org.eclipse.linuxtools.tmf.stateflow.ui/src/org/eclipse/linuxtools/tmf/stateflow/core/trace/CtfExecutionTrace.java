@@ -89,7 +89,8 @@ public class CtfExecutionTrace extends CtfTmfTrace {
              }
     	}
 
-    	// default behavior, call the super class
+    	// In theory you should never get here if we created an execution trace, but the sensible thing to do
+    	// if so is call the super class
     	super.buildStateSystem();
     }
 
