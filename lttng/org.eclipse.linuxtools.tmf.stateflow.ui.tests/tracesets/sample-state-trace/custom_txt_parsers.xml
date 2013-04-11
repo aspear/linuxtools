@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<CustomTxtTraceDefinitionList>
+<Definition name="esx-vm-events">
+<TimeStampOutputFormat>yyyy-MM-dd HH:mm:ss,SSS zzz</TimeStampOutputFormat>
+<InputLine>
+<Cardinality max="2147483647" min="0"/>
+<RegEx>(\d\d\d\d-\d\d-\d\d \d\d\:\d\d\:\d\d,\d\d\d [A-Z]+) \[([^\[]+)\]\[([^\[]+)\]\[([^\[]+)\]\[([^\[]+)\](.*)</RegEx>
+<InputData action="0" format="yyyy-MM-dd HH:mm:ss,SSS zzz" name="Time Stamp"/>
+<InputData action="0" name="Datacenter"/>
+<InputData action="0" name="Host"/>
+<InputData action="0" name="VM"/>
+<InputData action="0" name="Event Type"/>
+<InputData action="0" name="Message"/>
+</InputLine>
+<OutputColumn name="Time Stamp"/>
+<OutputColumn name="Datacenter"/>
+<OutputColumn name="Host"/>
+<OutputColumn name="VM"/>
+<OutputColumn name="Event Type"/>
+<OutputColumn name="Message"/>
+</Definition>
+</CustomTxtTraceDefinitionList>
