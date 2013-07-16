@@ -62,6 +62,7 @@ public class CtfExecutionTrace extends CtfTmfTrace {
         try {
             temp = new CTFTrace(path);
         } catch (CTFReaderException e) {
+        	System.err.println("This is not a valid CTF trace: " + e.getMessage()); //FIXME AARON
             return false;
         }
 
@@ -72,6 +73,7 @@ public class CtfExecutionTrace extends CtfTmfTrace {
         if (dom != null && dom.equals("\"ust\"")) { //$NON-NLS-1$
             return true;
         }
+        System.err.println("This is not a valid execution trace, dom='" + dom + "'"); //FIXME AARON
         return false;
     }
 

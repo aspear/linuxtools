@@ -10,7 +10,7 @@
       </category>
       <view
             name="State Flow View"
-            icon="icons/sample.gif"
+            icon="icons/execution-trace.gif"
             category="org.eclipse.linuxtools.tmf.stateflow.ui"
             class="org.eclipse.linuxtools.tmf.stateflow.ui.views.stateflow.StateFlowView"
             id="org.eclipse.linuxtools.tmf.stateflow.ui.views.stateflow.StateFlowView">
@@ -40,7 +40,7 @@
       <type
             category="org.eclipse.linuxtools.tmf.ui.category.ctf"
             event_type="org.eclipse.linuxtools.tmf.core.ctfadaptor.CtfTmfEvent"
-            icon="icons/sample.gif"
+            icon="icons/execution-trace.gif"
             id="org.eclipse.linuxtools.tmf.stateflow.tracetype"
             name="%tracetype.type.execution"
             trace_type="org.eclipse.linuxtools.tmf.stateflow.core.trace.CtfExecutionTrace">

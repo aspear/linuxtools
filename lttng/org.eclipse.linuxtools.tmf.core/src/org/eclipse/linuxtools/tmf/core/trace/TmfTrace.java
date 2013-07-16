@@ -319,6 +319,16 @@ public abstract class TmfTrace extends TmfEventProvider implements ITmfTrace {
          * To do this we get a list of factories that support this particular
          * trace instance.
          */
+        addDataDrivenStateSystems();
+    }
+
+    /**
+     * scan for available data driven state factories for the trace and create a state system for them
+     * if they exist
+     * @throws TmfTraceException
+     */
+    protected void addDataDrivenStateSystems() throws TmfTraceException {
+
         IResource resource = this.getResource();
         String selectedStateFactoryId = null;
 
@@ -342,13 +352,14 @@ public abstract class TmfTrace extends TmfEventProvider implements ITmfTrace {
                 // TODO we need a mechanism to allow the user to select which
                 // factory they want to use in the case that there are multiple
                 // that will work.  This is probably a rare use case anyway, so
-                // simply select the first one for nows
+                // simply select the first one for now
                 selectedStateFactory = availableStateSystemFactories.get(0);
             }
         }
         if (selectedStateFactory != null) {
             ITmfStateSystem ss = selectedStateFactory.createStateSystem(this);
             if (ss != null) {
+                // add to internal collection of state systems for this trace
                 fStateSystems.put(selectedStateFactory.getStateSystemId(), ss);
                 try {
                     resource.setPersistentProperty(TmfCommonConstants.TRACE_SELECTED_STATE_PROVIDER, selectedStateFactory.getStateSystemId());
@@ -357,6 +368,7 @@ public abstract class TmfTrace extends TmfEventProvider implements ITmfTrace {
                 }
             }
         }
+
     }
 
     /**
