@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<stateInfo>
+
+    <!-- context for this system has a hierarchy of Process > Thread > Method -->
+    <defineContext id="Process"   parentId=""         hasState="true"/>
+    <defineContext id="Thread"   parentId="Process"   hasState="true"/>
+    <defineContext id="Method"   parentId="Thread"    hasState="true"/>
+
+    <!--
+     **************************************************************************
+      DEFINE AVAILABLE STATES
+     -->
+	<stateDeclaration>
+		<state name="Unknown" rgb=""> <!-- display nothing for Unknown -->
+			<value>0</value>
+		</state>
+        <state name="Running" rgb="23,207,93">
+			<value>1</value>
+		</state>
+        <state name="Up Stack" rgb="78,128,97">
+		    <value>2</value>
+		</state>
+	</stateDeclaration> 
+    <!--
+    **************************************************************************
+    * DEFINE EVENTS THAT CAN SET/CHANGE CONTEXT
+    -->
+
+    <!-- First, we SWITCH the currently active context/stack for the thread to the value 
+    contained in the events.  -->
+    <switchContext  eventType="lttng_ust_java:function_entry_event">
+            <valueContext id="Thread"  field="int_tid"        fieldRegex="(.*)"/>
+	</switchContext>
+    <switchContext  eventType="lttng_ust_java:function_exit_event">
+            <valueContext id="Thread"  field="int_tid"        fieldRegex="(.*)"/>
+	</switchContext>
+
+    <!-- Next, if the event is a function entry, then we push the current method
+    on the stack of the current thread (which was switched in above) and then the
+    value for the method becomes the new method. -->
+    <pushContext  eventType="lttng_ust_java:function_entry_event">
+           <valueContext id="Method"  field="string_method"  fieldRegex="(.*)"/>
+           <valuePreviousContextState value="2"/>
+	</pushContext>
+
+    <!-- If this is a function exit, pop the method only to be the current method
+    in the current thread. -->
+    <popContext  eventType="lttng_ust_java:function_exit_event">
+           <valueContext id="Method"  field="string_method"  fieldRegex="(.*)"/>
+	</popContext>
+
+	<!-- 
+    **************************************************************************
+    DEFINE EVENTS THAT CAN CHANGE THE STATE OF THE CURRENT CONTEXT
+    -->
+
+    <stateChange eventType="lttng_ust_java:function_entry_event" contextId="Method">
+	      <valueState value="1"/>
+	</stateChange>
+<!-- no state change for function exit events, we let the pop context take care of that
+    <stateChange eventType="lttng_ust_java:function_exit_event" contextId="Method">
+	       <valueState value="0"/>
+	</stateChange>
+-->
+    
+ </stateInfo>

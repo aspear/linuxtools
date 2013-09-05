@@ -1,0 +1,15 @@
+2013-01-30 23:41:51,001 MST [YourDataCenter][YourHypervisor][A VM][com.vmware.vim25.VmStartingEvent] A VM on host YourHypervisor in YourDataCenter is starting
+2013-01-30 23:41:51,010 MST [YourDataCenter][YourHypervisor][A VM][com.vmware.vim25.VmPoweredOnEvent] A VM on  YourHypervisor in YourDataCenter is powered on
+2013-01-30 23:41:51,022 MST [YourDataCenter][YourHypervisor][C VM][com.vmware.vim25.VmStartingEvent] B VM on host YourHypervisor in YourDataCenter is starting
+2013-01-30 23:41:51,050 MST [YourDataCenter][YourHypervisor][B VM][com.vmware.vim25.VmStartingEvent] B VM on host YourHypervisor in YourDataCenter is starting
+2013-01-30 23:41:51,051 MST [YourDataCenter][YourHypervisor][A VM][com.vmware.vim25.VmStoppingEvent] A VM on  YourHypervisor in YourDataCenter is stopping
+2013-01-30 23:41:51,055 MST [YourDataCenter][MyHypervisor][another VM][com.vmware.vim25.VmStartingEvent] B VM on host YourHypervisor in YourDataCenter is starting
+2013-01-30 23:41:51,060 MST [YourDataCenter][YourHypervisor][B VM][com.vmware.vim25.VmPoweredOnEvent] B VM on  YourHypervisor in YourDataCenter is powered on
+2013-01-30 23:41:51,070 MST [YourDataCenter][YourHypervisor][A VM][com.vmware.vim25.VmPoweredOffEvent] A VM on  YourHypervisor in YourDataCenter is powered off
+2013-01-30 23:41:51,076 MST [YourDataCenter][MyHypervisor][another VM][com.vmware.vim25.VmPoweredOnEvent] B VM on  YourHypervisor in YourDataCenter is powered on
+2013-01-30 23:41:51,090 MST [YourDataCenter][YourHypervisor][C VM][com.vmware.vim25.VmPoweredOnEvent] B VM on  YourHypervisor in YourDataCenter is powered on
+2013-01-30 23:41:51,100 MST [YourDataCenter][YourHypervisor][B VM][com.vmware.vim25.VmStoppingEvent] B VM on  YourHypervisor in YourDataCenter is stopping
+2013-01-30 23:41:51,101 MST [YourDataCenter][MyHypervisor][another VM][com.vmware.vim25.VmStoppingEvent] B VM on  YourHypervisor in YourDataCenter is stopping
+2013-01-30 23:41:51,106 MST [YourDataCenter][MyHypervisor][another VM][com.vmware.vim25.VmPoweredOffEvent] B VM on  YourHypervisor in YourDataCenter is powered off
+2013-01-30 23:41:51,140 MST [YourDataCenter][YourHypervisor][B VM][com.vmware.vim25.VmPoweredOffEvent] B VM on  YourHypervisor in YourDataCenter is powered off
+2013-01-30 23:41:52,200 MST [YourDataCenter][YourHypervisor][A VM][com.vmware.vim25.PropertyChange] runtime.memoryOverhead = 43507712

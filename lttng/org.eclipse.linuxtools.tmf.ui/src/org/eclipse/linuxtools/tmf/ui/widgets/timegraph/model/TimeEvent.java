@@ -14,6 +14,7 @@
 package org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model;
 
 import org.eclipse.linuxtools.tmf.core.util.Pair;
+//FIXME AARON import org.eclipse.linuxtools.tmf.core.event.ITmfEvent;
 
 /**
  * Generic TimeEvent implementation
@@ -135,4 +136,13 @@ public class TimeEvent implements ITimeEvent2 {
     public String toString() {
         return getClass().getSimpleName() + " start=" + fTime + " end=" + (fTime + fDuration) + " duration=" + fDuration + (hasValue() ? (" value=" + fValue) : ""); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
     }
+
+    /**
+     * @since 2.1
+     */
+  //FIXME AARON //@Override
+    //public ITmfEvent getTmfEvent() {
+    //     return null;
+    //}
+
 }

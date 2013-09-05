@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<stateInfo>
+
+    <!-- context for this system has a hierarchy of Datacenter > Host > VM.  State is only displayed for a VM -->
+    <defineContext id="Datacenter" parentId=""             hasState="false"/>
+    <defineContext id="Host"       parentId="Datacenter"   hasState="false"/>
+    <defineContext id="VM"         parentId="Host"         hasState="true"/>
+	
+	<stateDeclaration>
+		<state name="Unknown" rgb="255,0,0">
+			<value>0</value>
+		</state>
+        <state name="PoweredOff" rgb="224,224,224">
+			<value>PoweredOff</value>
+            <value>1</value>
+		</state>
+        <state name="Starting" rgb="185,255,176">
+			<value>Starting</value>
+            <value>2</value>
+		</state>
+        <state name="PoweredOn" rgb="23,207,93">
+			<value>PoweredOn</value>
+            <value>3</value>
+		</state>
+		<state name="Stopping" rgb="248,255,31">
+			<value>Stopping</value>
+            <value>4</value>
+		</state>
+	</stateDeclaration> 
+    <!-- ************************************************************************** -->
+
+    <switchContext  eventType="esx-vm-events">
+            <valueContext id="Datacenter" field="Datacenter" fieldRegex="(.*)"/>
+            <valueContext id="Host"       field="Host"       fieldRegex="(.*)"/>
+            <valueContext id="VM"         field="VM"         fieldRegex="(.*)"/>
+	</switchContext>
+	
+	<switchContext  eventType="com.vmware.vim25.VmStartingEvent">
+            <valueContext id="Datacenter" field="Datacenter" fieldRegex="(.*)"/>
+            <valueContext id="Host"       field="Host"       fieldRegex="(.*)"/>
+            <valueContext id="VM"         field="VM"         fieldRegex="(.*)"/>
+
+	</switchContext>
+    <switchContext  eventType="com.vmware.vim25.VmStoppingEvent">
+            <valueContext id="Datacenter" field="Datacenter" fieldRegex="(.*)"/>
+            <valueContext id="Host"       field="Host"       fieldRegex="(.*)"/>
+            <valueContext id="VM"         field="VM"         fieldRegex="(.*)"/>
+
+	</switchContext>
+    <switchContext  eventType="com.vmware.vim25.VmPoweredOnEvent">
+            <valueContext id="Datacenter" field="Datacenter" fieldRegex="(.*)"/>
+            <valueContext id="Host"       field="Host"       fieldRegex="(.*)"/>
+            <valueContext id="VM"         field="VM"         fieldRegex="(.*)"/>
+
+	</switchContext>
+
+	<!-- ************************************************************************** -->
+
+    <stateChange eventType="esx-vm-events" contextId="VM">
+	       <valueState field="Event Type" fieldRegex="com\.vmware\.vim25\.Vm(Starting|Stopping|PoweredOn|PoweredOff)Event"/>
+	</stateChange>
+    
+	<stateChange eventType="com.vmware.vim25.VmStartingEvent" contextId="VM">
+	       <valueState value="Starting"/>
+	</stateChange>
+    <stateChange eventType="com.vmware.vim25.VmStoppingEvent" contextId="VM">
+	       <valueState value="Stopping"/>
+	</stateChange>
+    <stateChange eventType="com.vmware.vim25.VmPoweredOnEvent" contextId="VM">
+	       <valueState value="On"/>
+	</stateChange>
+    <stateChange eventType="com.vmware.vim25.VmPoweredOffEvent" contextId="VM">
+	       <valueState value="Off"/>
+	</stateChange>
+
+ </stateInfo>

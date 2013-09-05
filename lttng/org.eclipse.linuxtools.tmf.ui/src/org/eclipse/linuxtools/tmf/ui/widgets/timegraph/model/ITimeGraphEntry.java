@@ -44,7 +44,7 @@ public interface ITimeGraphEntry {
      * Returns the child elements of this entry.
      *
      * @return an array of child elements
-     * @since 2.0
+     * @since 2.1
      */
     List<? extends ITimeGraphEntry> getChildren();
 

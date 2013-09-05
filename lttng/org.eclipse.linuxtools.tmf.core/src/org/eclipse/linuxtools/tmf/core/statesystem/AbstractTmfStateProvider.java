@@ -52,6 +52,11 @@ public abstract class AbstractTmfStateProvider implements ITmfStateProvider {
     /** State system in which to insert the state changes */
     protected ITmfStateSystemBuilder ss = null;
 
+    /** optional state presentation information that may be provided by derived objects.  They must do so
+     * in their constructors if so.
+     * @since 2.1*/
+    protected IStateSystemPresentationInfo  statePresentationInfo = null;
+
     /**
      * Instantiate a new state provider plugin.
      *
@@ -88,6 +93,10 @@ public abstract class AbstractTmfStateProvider implements ITmfStateProvider {
     @Override
     public void assignTargetStateSystem(ITmfStateSystemBuilder ssb) {
         ss = ssb;
+
+        // constructor has already been called which presumably sets up this member
+        ssb.setStatePresentationInfo(statePresentationInfo);
+
         ssAssigned = true;
         eventHandlerThread.start();
     }
@@ -223,6 +232,14 @@ public abstract class AbstractTmfStateProvider implements ITmfStateProvider {
                 e.printStackTrace();
             }
         }
+    }
+
+    /**
+     * @since 2.1
+     */
+    @Override
+    public IStateSystemPresentationInfo  getStatePresentationInfo() {
+        return statePresentationInfo;
     }
 
     // ------------------------------------------------------------------------

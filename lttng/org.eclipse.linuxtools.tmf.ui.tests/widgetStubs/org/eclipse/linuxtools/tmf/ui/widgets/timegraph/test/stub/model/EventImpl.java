@@ -11,6 +11,7 @@
  *******************************************************************************/
 package org.eclipse.linuxtools.tmf.ui.widgets.timegraph.test.stub.model;
 
+//FIXME AARON import org.eclipse.linuxtools.tmf.core.event.ITmfEvent;
 import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.ITimeEvent;
 import org.eclipse.linuxtools.tmf.ui.widgets.timegraph.model.ITimeGraphEntry;
 
@@ -81,5 +82,11 @@ public class EventImpl implements ITimeEvent {
 	public long getDuration() {
 		return duration;
 	}
+
+	//FIXME AARON  @Override
+    //public ITmfEvent getTmfEvent() {
+    //    //FIXME add tests for this? Aaron Spear added this
+    //    return null;
+   // }
 
 }

@@ -229,4 +229,11 @@ public interface ITmfStateSystemBuilder extends ITmfStateSystem {
      *             know how to handle it.
      */
     void closeHistory(long endTime) throws TimeRangeException;
+
+    /**
+     * Set the optional state presentation information
+     * @param info the presentation information to use. May be null.
+     * @since 2.1
+     */
+    void setStatePresentationInfo( IStateSystemPresentationInfo info );
 }

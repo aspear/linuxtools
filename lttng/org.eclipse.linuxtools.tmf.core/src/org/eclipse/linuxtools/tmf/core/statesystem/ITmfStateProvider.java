@@ -122,4 +122,12 @@ public interface ITmfStateProvider {
      * and that it should close its current history.
      */
     void dispose();
+
+    /**
+     * Return optional presentation information for the states that this IStateChangeInput
+     * interface creates.
+     * @return a valid state presentation info object, or null if not available
+     * @since 2.1
+     */
+     IStateSystemPresentationInfo  getStatePresentationInfo();
 }
